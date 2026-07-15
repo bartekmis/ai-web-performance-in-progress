@@ -18,10 +18,6 @@ There are two repos:
 Use this repo as your **reference**: whenever your local copy starts to drift from what
 you see in the workshop, compare it against this one and pull in the newer stages.
 
-> Why a separate repo? A participant asked for a way to keep up with the skills as they
-> evolve - the further ahead the workshop gets, the more a frozen starter kit drifts
-> from what's shown live. This repo closes that gap.
-
 ## What's inside (`.ai/web-performance/`)
 
 - `site-profile.md` - data + audit state (the AI fills it in, asking you)
