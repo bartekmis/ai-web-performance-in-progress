@@ -135,3 +135,95 @@ When RUN, the stage must (Do items):
 Write results to site-profile.md > ## Network (### Preconnect) and findings.md. Show me
 the draft file first, save only after my OK.
 ```
+
+## 7. Build the cache & CDN stage (builder prompt)
+Adds the edge/cache layer: is the fast number real, or is a cache hiding a slow origin.
+Produces audit/40-cache-cdn.md.
+```
+Build a NEW audit stage as a SEPARATE file: .ai/web-performance/audit/40-cache-cdn.md.
+Same rules as card 4 (standalone, wire into 00-index.md + site-profile.md). This is a DO
+stage (run the tools yourself, do not interview) - the ONE thing not to invent is the
+domain/URLs: read them from site-profile.md, or ASK and wait. Runs AFTER stage 20.
+
+Topic: the CACHE / EDGE layer only - is there a CDN in front, what is cached and for how
+long, HIT vs MISS, and (the point) how much of the measured speed is real vs a cache
+masking a slow origin. Do NOT fix the origin here; a cache-bypassed TTFB in seconds is a
+SERVER problem - record it and hand it to stage 50.
+
+SPEED: cap every curl with `--max-time 20` (the origin can be slow); prefer `-sI`.
+
+When RUN, the stage must (Do items):
+- Detect the edge/CDN in front: `curl -sI https://{HOST}/` and read edge fingerprints
+  (cf-ray/cf-cache-status = Cloudflare, x-vercel-cache = Vercel, x-served-by/x-cache/via =
+  Fastly/Varnish, x-cache ...cloudfront = CloudFront). Record which, or "none - direct origin".
+- HTML cacheability per page type: request the same URL TWICE, read the edge cache-status
+  header (cf-cache-status / x-vercel-cache / x-cache) - MISS then HIT = edge-cached;
+  DYNAMIC/BYPASS/no-store/private on both = not cached. Read Cache-Control / Age / Vary; a
+  wide Vary (e.g. Cookie) or set-cookie on the HTML defeats full-page cache - flag it.
+- Cache-bust probe (the key check): append a junk query param the cache never saw
+  (`?__perfbust=1`) and re-measure TTFB. If it busts cache and TTFB jumps to seconds, the
+  fast number was the CACHE - record cached TTFB vs ORIGIN TTFB and the gap (utm/ad-click
+  params are everyday cache misses, so the origin TTFB is what returning-from-campaign
+  users pay). This is the "cache pudruje TTFB, nie usuwa" lesson, made measurable.
+- Static assets: sample a hashed JS/CSS bundle, the LCP image, a font - check they are
+  edge-cached (HIT on repeat) with long immutable Cache-Control (max-age=31536000,
+  immutable). Flag short/absent max-age or MISS-on-repeat, and any asset served straight
+  from origin.
+- Change list + ALWAYS end with the handoff line: "ORIGIN TTFB = <n>s (cache-bypassed) ->
+  owned by stage 50 (backend triage). Cache masks it; it does not remove it."
+
+Write results to site-profile.md > ## Cache & CDN and findings.md. Show me the draft file
+first, save only after my OK.
+```
+
+## 8. Build the backend triage stage (builder prompt)
+The TTFB endgame: isolate the real origin TTFB, classify it, and hand off routed next
+steps - WITHOUT running the profiler. Produces audit/50-backend-triage.md.
+```
+Build a NEW audit stage as a SEPARATE file: .ai/web-performance/audit/50-backend-triage.md.
+Same rules as card 4 (standalone, wire into 00-index.md + site-profile.md). DO stage with a
+couple of "Ask for" items. Runs AFTER stage 40; reads the origin TTFB from ## Cache & CDN
+and the TTFB baselines from findings.md.
+
+HARD BOUNDARY (build this in): the stage answers three questions from OUTSIDE the server -
+(1) the real origin TTFB with cache removed, (2) which request class is slow (static vs
+dynamic, one route vs all), (3) what CLASS of backend problem it is - and then STOPS with a
+routed next-steps list. It does NOT open Query Monitor / Code Profiler / Sentry / any APM
+and does NOT change code. That deep-dive is a SEPARATE human step. Keep "measure + route"
+apart from "profile + fix".
+
+When RUN, the stage must (Do items):
+- Isolate the ORIGIN TTFB: force a cache MISS/bypass (junk param, or a known-uncacheable
+  route, or the origin IP if recorded in the profile - never guess it) and measure TTFB a
+  few times, cold + warm. Record min/typical and whether cold >> warm.
+- Read the `Server-Timing` response header. If present, parse the spans (db/render/cache).
+  If absent, add "instrument Server-Timing" to next steps (cheapest backend observability).
+- TTFB by request class: compare a STATIC/prebuilt route (robots.txt/favicon/static file =
+  the server floor) vs a DYNAMIC/app route vs any API/data endpoint. Ask me (one at a time)
+  which routes are static vs per-request and where the data comes from, only if unclear.
+  Static floor fast but app routes slow -> cost is in render/data fetch; even the static
+  floor slow -> cost is infra/host-level.
+- Classify the bottleneck CLASS: A slow every request incl. warm (compute/DB/external fetch
+  on render), B cold >> warm (cold start / cache-miss regeneration), C TTFB scales with
+  content (N+1 / unbounded query/fetch), D even static floor slow (infra/host sizing,
+  PHP-FPM saturation), E origin actually fine (revisit stages 40/20).
+- OUTPUT a "backend deep-dive: next steps" list ROUTED BY STACK - which tool to open and
+  what to look for, tied to the class:
+  - WordPress: Query Monitor (per-request DB time, N+1, slow hooks, blocking HTTP API
+    calls); Code Profiler / Xdebug / Blackfire (function-level flamegraph); wow-audit-check.php
+    drop-in (server/infra floor: opcache, PHP-FPM vs RAM, MySQL buffer pool + missing indexes
+    on postmeta/options, autoload/transient bloat, object-cache type); Novamira MCP (AI runs
+    WP-CLI / DB queries / diagnostic PHP inside WordPress). The drop-in and Novamira execute
+    actions -> they belong to the deep-dive, route to them, do not run them in this stage.
+  - Next.js: `next build` (which routes are Static/SSG/ISR/SSR); the data fetch on the
+    render/regeneration path (external CMS e.g. WordPress GraphQL gates the TTFB - follow it
+    into the WordPress tools); tracing via Sentry / OpenTelemetry / Vercel Observability.
+  - Astro: static (prerender) vs SSR adapter; slow Astro.fetch/endpoints on render; cold start.
+  - Any other stack / no APM: add Server-Timing + log the slowest span, or use whatever APM
+    the host offers. The routing follows the CLASS, not the tool brand.
+- End with the STOP line: bottleneck class + the single tool to open next - "the AI audit
+  stops at routing; the deep profile + fix happen with that tool (a separate step)."
+
+Write results to site-profile.md > ## Backend and findings.md. Show me the draft file
+first, save only after my OK.
+```

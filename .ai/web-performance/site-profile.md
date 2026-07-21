@@ -49,7 +49,24 @@ Filled by Stage 30 (audit/30-preconnect.md). Leave <TODO> until run.
 - Dns-prefetch / dropped: <TODO>
 - Dead hints to remove: <TODO>
 
+## Cache & CDN
+Filled by Stage 40 (audit/40-cache-cdn.md). Leave <TODO> until run.
+- Edge / CDN in front: <TODO which / none>
+- HTML cacheable per page type: <TODO cached (HIT/Age) / dynamic (MISS/no-store)>
+- Cache-bust: cached TTFB vs ORIGIN TTFB: <TODO n / n + gap>
+- Static assets long+immutable & edge-cached: <TODO yes / origin-bound assets>
+
+## Backend
+Filled by Stage 50 (audit/50-backend-triage.md). Leave <TODO> until run.
+- Origin TTFB (cache-bypassed, cold / warm): <TODO n / n>
+- Static-floor TTFB vs app-route TTFB: <TODO n / n>
+- Server-Timing present: <TODO yes (spans) / no - add it>
+- Bottleneck class (A compute/DB, B cold-start, C N+1/scale, D infra, E false-alarm): <TODO>
+- Next step (tool to open): <TODO routed by stack>
+
 ## Progress
 - [ ] Stage 10 - profile and baseline
 - [ ] Stage 20 - network: DNS / TLS / HTTP
 - [ ] Stage 30 - preconnect (external domains)
+- [ ] Stage 40 - cache & CDN (edge)
+- [ ] Stage 50 - backend triage (TTFB)

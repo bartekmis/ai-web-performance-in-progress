@@ -23,6 +23,8 @@ single stage - each stage in audit/ is self-contained and can be run on its own.
 - 10 - profile and baseline       -> .ai/web-performance/audit/10-profile-and-baseline.md
 - 20 - network: DNS / TLS / HTTP   -> .ai/web-performance/audit/20-network-dns-tls-http.md
 - 30 - preconnect (external domains) -> .ai/web-performance/audit/30-preconnect.md
+- 40 - cache & CDN (edge)          -> .ai/web-performance/audit/40-cache-cdn.md
+- 50 - backend triage (TTFB)       -> .ai/web-performance/audit/50-backend-triage.md
 - (more stages added per workshop: LCP, CLS, INP...)
 
 ## How to resume
