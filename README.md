@@ -27,6 +27,9 @@ you see in the workshop, compare it against this one and pull in the newer stage
 - `audit/10-profile-and-baseline.md` - stage 1: profile, page types, WPT baseline, CrUX, RUM
 - `audit/20-network-dns-tls-http.md` - stage 2: network - DNS / TLS / HTTP
 - `audit/30-preconnect.md` - stage 3: preconnect for external domains
+- `audit/60-render-start.md` - stage 6: what delays the first paint, proven by a
+  controlled A/B experiment (the first stage that tests a hypothesis instead of reading
+  a value - see the evidence rule in `audit/00-index.md`)
 - `wpt/mobile`, `wpt/desktop` - drop your WebPageTest JSON files here
 
 More stages (LCP, CLS, INP, images, fonts...) are added as we go, one per workshop.

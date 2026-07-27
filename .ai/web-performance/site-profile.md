@@ -64,9 +64,23 @@ Filled by Stage 50 (audit/50-backend-triage.md). Leave <TODO> until run.
 - Bottleneck class (A compute/DB, B cold-start, C N+1/scale, D infra, E false-alarm): <TODO>
 - Next step (tool to open): <TODO routed by stack>
 
+## Render start
+Filled by Stage 60 (audit/60-render-start.md). Leave <TODO> until run.
+- Start Render / FCP / LCP (lab, slow page type): <TODO n / n / n>
+- Render-blocking resources: <TODO list>
+- Resources before first paint - verdict count (DELETE / DEFER / MOVE / ON DEMAND /
+  SELF-HOST / KEEP): <TODO n / n / n / n / n / n>
+- Waterfall step at: <TODO ms - and what was blocking the parser there>
+- Dead or errored resources (not visible in the waterfall): <TODO list / none>
+- Hypothesis 1 / 2 / 3: <TODO> -> verdict <SUPPORTED / REGRESSION / INCONCLUSIVE>
+- Measured delta of the winning change (FCP / LCP / DCL, medians): <TODO>
+- Fixes to apply (file + change): <TODO routed by stack>
+- Re-tested on WebPageTest, same profile: <TODO date + before/after>
+
 ## Progress
 - [ ] Stage 10 - profile and baseline
 - [ ] Stage 20 - network: DNS / TLS / HTTP
 - [ ] Stage 30 - preconnect (external domains)
 - [ ] Stage 40 - cache & CDN (edge)
 - [ ] Stage 50 - backend triage (TTFB)
+- [ ] Stage 60 - render start (first paint)

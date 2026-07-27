@@ -27,6 +27,94 @@ at a time, and wait. Do NOT derive data yourself from code/MCP - you must ask me
 ```
 (swap the filename for any stage in the audit/ folder)
 
+## 3b. Stage 60 standalone: render start, end to end
+Paste after workshop 07. Runs the whole loop: facts -> hypotheses -> experiment ->
+verdict -> fix. Needs the chrome-devtools MCP server and a WebPageTest JSON in
+.ai/web-performance/wpt/mobile/.
+```
+Run .ai/web-performance/audit/60-render-start.md for my project.
+
+Inputs: the WebPageTest JSON in .ai/web-performance/wpt/mobile/, my page URL and stack
+from site-profile.md, the chrome-devtools MCP server, and my source code.
+Read what earlier stages found first; if Stage 50 says TTFB is the wall, tell me and stop.
+
+Work in stages and show me each one before moving on. Do not propose a single fix
+before the experiment is done.
+
+1. FACTS. Write a throwaway script to pull from the JSON (do not read 1 MB into
+   context): metrics, run-to-run consistency, every request that started before Start
+   Render, both render-blocking lists, every consoleLog entry with its timestamp in ms,
+   network gaps over 500 ms with what was in flight, TBT per origin, fonts, LCP
+   candidates, zero-byte responses. Facts only.
+
+2. WHAT IS MISSING. Cross the console errors and the render-blocking list against the
+   request list. Anything render-blocking or errored with no normal row in the waterfall
+   is a prime suspect: a resource that never arrives cannot be drawn as a bar. Note that
+   its cost is set by the resolver and the timeout, not by my page, so it can be seconds
+   on one network and milliseconds on another.
+
+3. INTERROGATE EVERY RESOURCE that started before Start Render. One row each, five
+   questions: what is it and WHO added it (parser, or which script injected it); is it
+   needed on THIS page type; is it needed BEFORE the first paint; is it loaded the right
+   way (sync / defer / async / preload / render-blocking); how many bytes and how much
+   main-thread CPU does it cost. Then give each row ONE verdict, preferring the earlier
+   option: DELETE (nothing uses it) > DEFER or ASYNC > MOVE out of <head> > ON DEMAND
+   (on interaction, on scroll into view, on idle - anything below the fold) > SELF-HOST
+   > KEEP (say why it must load before the first paint).
+   Be precise about the ladder: a sync <script> in <head> blocks the parser and therefore
+   the paint; the same script at the end of <body> stops blocking the paint above it but
+   still blocks DOMContentLoaded; defer stops the blocking wherever the tag sits and keeps
+   execution order, so "add defer" usually beats "move it to the body".
+   If the waterfall shows a STEP - a batch of requests starting noticeably later than the
+   ones above - say what caused it. A step is a discovery boundary: everything above was
+   found by the preload scanner in <head>, everything below only after the parser got past
+   a blocker. Name the blocker: a parser-blocking script, a render-blocking stylesheet, a
+   resource that never answered, or simply the end of <head>.
+   Give me this table before any hypothesis.
+
+4. HYPOTHESES. Take the three rows from the table that promise the largest gain. For
+   each: the mechanism, the expected gain and where that number comes from, and THE
+   SINGLE HTML EDIT THAT WOULD PROVE IT WRONG. Everything else from the table goes to the
+   fix list as a low-risk cleanup that does not need its own experiment.
+   Show me these three and wait for my OK.
+
+5. BUILD VARIANTS - in the shell, not in the browser. Download the page HTML, inject
+   <base href="MY_URL"> so subresources still come from production, and produce one file
+   per hypothesis differing by exactly ONE edit, plus an unmodified baseline. Serve them
+   locally. Before measuring anything, confirm every variant really differs from the
+   baseline and that each edit matched something - a pattern that matched nothing yields
+   a file identical to the baseline, and identical files always report "no difference",
+   which is not the same as "no effect".
+
+6. MEASURE - everything through the chrome-devtools MCP server.
+   Call emulate ONCE (mobile 412x765x2.6, Fast 4G, CPU 4x) and never change it again.
+   Every measurement is TWO navigations:
+     navigate_page type=url     -> the variant URL
+     navigate_page type=reload with ignoreCache=true   -> this is the measured load
+   ignoreCache is honoured only on reload; on a url navigation it is silently ignored
+   and you get a page served ~60% from cache and an FCP about half the real one.
+   Warm up once and discard it, then rotate A,B,C,A,B,C for at least 3 rounds.
+   After each load, evaluate_script for FCP, LCP and domContentLoaded, and in the same
+   script count resources with transferSize 0 and a non-zero decoded size. Above ~20%
+   the load was not cold: discard it and repeat.
+
+7. VERDICT. Compare medians, never single runs, and state the spread within each
+   variant. The bar per metric is the larger of the two spreads. Allowed verdicts:
+   SUPPORTED, REGRESSION, INCONCLUSIVE. A DevTools or Lighthouse estimate is a
+   prediction - never present it as a measurement. Give me one table:
+   hypothesis | mechanism | verdict | delta FCP/LCP/DCL | caveat.
+
+8. FIX. Only for SUPPORTED hypotheses, at the source, one change at a time, with the
+   measured delta in a comment so nobody re-adds it later. A resource that is broken but
+   measured INCONCLUSIVE still gets removed - label it a correctness fix, not a
+   performance fix. Run my project's type check or build.
+
+9. REPORT. What you proved with numbers, what you failed to prove and why, what you
+   changed file by file. Last line, always: re-run WebPageTest with the same profile,
+   because this loop measures with warm DNS and warm connections and only WPT starts
+   cold on every run, the way a real first-time visitor does.
+```
+
 ## 4. Extend: new stage (builder prompt)
 ```
 We're creating a new audit stage as a SEPARATE file in .ai/web-performance/audit/.
