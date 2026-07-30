@@ -30,6 +30,9 @@ you see in the workshop, compare it against this one and pull in the newer stage
 - `audit/60-render-start.md` - stage 6: what delays the first paint, proven by a
   controlled A/B experiment (the first stage that tests a hypothesis instead of reading
   a value - see the evidence rule in `audit/00-index.md`)
+- `audit/70-dom-size.md` - stage 7: what the size and shape of the DOM cost in style and
+  layout recalculation, which script forces it, and - explicitly - whether it is worth
+  fixing yet. Node count is not the criterion; a 40 ms+ recalculation is.
 - `wpt/mobile`, `wpt/desktop` - drop your WebPageTest JSON files here
 
 More stages (LCP, CLS, INP, images, fonts...) are added as we go, one per workshop.

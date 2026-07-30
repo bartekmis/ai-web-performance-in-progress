@@ -32,6 +32,7 @@ single stage - each stage in audit/ is self-contained and can be run on its own.
 - 40 - cache & CDN (edge)          -> .ai/web-performance/audit/40-cache-cdn.md
 - 50 - backend triage (TTFB)       -> .ai/web-performance/audit/50-backend-triage.md
 - 60 - render start (first paint)  -> .ai/web-performance/audit/60-render-start.md
+- 70 - DOM size (recalc cost)      -> .ai/web-performance/audit/70-dom-size.md
 - (more stages added per workshop: LCP, CLS, INP...)
 
 ## What each stage produces (the shape changes as you go up the stack)
@@ -40,6 +41,10 @@ single stage - each stage in audit/ is self-contained and can be run on its own.
   classifies it from outside and hands you the tool that can see in.
 - 60 produces a VERDICT: the value (Start Render) is easy to read but the cause is not,
   and no tool will settle it - only an experiment will. Hence the evidence rule above.
+- 70 produces a VERDICT PLUS A PRIORITY: the browser hands you both the cost and the
+  culprit, so the hard part is no longer finding the problem - it is deciding whether the
+  problem is worth an afternoon next to what Stage 60 found. A stage can legitimately end
+  in "real, but not now".
 
 ## How to resume
 Check the "## Progress" section in .ai/web-performance/site-profile.md and run the

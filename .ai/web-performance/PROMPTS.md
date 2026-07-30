@@ -115,6 +115,109 @@ before the experiment is done.
    cold on every run, the way a real first-time visitor does.
 ```
 
+## 3c. Stage 70 standalone: DOM size and recalculation cost
+Paste after workshop 09 (30.07). Needs the chrome-devtools MCP server. No WebPageTest JSON
+required - the browser supplies both the cost and the culprit.
+```
+Run .ai/web-performance/audit/70-dom-size.md for MY project.
+
+Inputs: MY page URL and stack from site-profile.md, what Stage 60 found in ## Render start,
+the chrome-devtools MCP server, and MY SOURCE CODE - the repo you are running in.
+Show me each step before moving on.
+
+Measure MY page, the URL from site-profile.md. Do not substitute any example or demo site.
+If the URL, page types or stack are missing from the profile, ask me and wait.
+Any figure quoted inside the stage file was measured on an unrelated reference page and is
+there to calibrate the method - never copy it into my findings and never treat it as a
+target. My numbers will be different.
+The deliverable is not "your DOM is deep" - it is: this chain / duplicate / list in MY
+codebase, in THIS file, costs THIS much, here is the change.
+
+READ THIS FIRST, it decides whether the run is any good: node count is NOT the criterion.
+The old Lighthouse rule (warn ~800 nodes, error ~1400) is gone. Chrome now flags a LARGE
+LAYOUT OR STYLE RECALCULATION, roughly 40 ms and up. A page with 5000 nodes and no heavy
+recalculation is fine. Never tell me "you have N elements, that is too many".
+
+1. MEASURE. Call emulate ONCE (mobile 412x765x2.6, Fast 4G, CPU 4x) and never change it -
+   which elements count as hidden or below the fold depends on the viewport. Navigate,
+   then performance_start_trace with reload and autoStop. If the trace lists a DOMSize
+   insight, call performance_analyze_insight on it and give me verbatim: total elements,
+   DOM depth and the element that STARTS the deepest chain, most children, and every
+   "Layout update: Duration N ms, with X of Y nodes needing layout".
+   Run the trace 3 times. The structural statistics will be identical every run; the
+   duration will not. Anything under ~5 ms, or under the observed spread, is noise.
+   If there is no DOMSize insight, say so - that is a result, not a failure - do step 3
+   anyway and stop before the experiment.
+
+2. ATTRIBUTE. If the trace lists a ForcedReflow insight, analyze it too. It names the
+   function and the script URL:line that forced synchronous layout, with per-frame ms.
+   Tell me whether that is my code or a third-party tag, because the fix differs. Explain
+   in one sentence the mechanism: JS asked for geometry after styles were invalidated, so
+   the browser had to lay out on the spot - and the deeper and wider the tree, the more
+   that costs. If ForcedReflow is absent, say the recalculation came from ordinary
+   rendering and the fix is structural only.
+
+3. INTERROGATE THE STRUCTURE with evaluate_script on the same viewport (the exact script is
+   in step 70.3 of the stage file - scope it to document.body, skip SVG internals). Then
+   give me a table of what it found, and for each row the move:
+   - a large display:none subtree with a -mobile / -desktop twin = the navigation is built
+     twice and CSS hides one copy -> one structure, styled by CSS;
+   - a big share of elements inside a cookie modal or off-canvas panel nobody opened
+     -> render on interaction;
+   - a long single-purpose chain at the deepest path (it should match the element the
+     DOMSize insight named - if it does not, trust the insight) -> flatten the wrappers;
+   - many removable wrappers and ~40%+ div/span -> fragments and semantic tags;
+   - half or more of the tree below the fold -> islands / lazy sections / content-visibility;
+   - a uniform list or carousel with a big subtree -> pagination or virtualisation.
+
+3b. MAP EVERY FINDING TO MY SOURCE - without this it is an analysis of a web page, not of
+   my project. Take the class and id tokens from step 3 and search MY repo for them. Strip
+   the build hash first: CSS Modules and styled-components append suffixes, so a rendered
+   `navigation_dropdown__label__2tt1k` lives in the repo as `navigation_dropdown__label` or
+   as a class inside a *.module.css. Give me one row per finding: finding | token searched |
+   file:line in my repo | owner. Owner is one of: my component/template (I can edit it - the
+   fix list goes here); my theme (say whether the change survives an update); a dependency I
+   configure, e.g. a page builder or consent plugin (the markup is generated, so the fix is
+   a SETTING, not a source edit - name the setting); a third-party script (the markup is not
+   in my repo at all - check it is also absent from the server HTML with curl - so the only
+   levers are loading strategy, configuration or dropping the vendor).
+   On WordPress search the active theme AND plugins AND the page builder's saved content
+   (builder markup lives in post meta, not in files) before concluding it is not mine.
+   If a token is nowhere to be found, say "source not identified" and stop guessing.
+   Do not write a fix for any finding whose owner you have not established.
+
+4. PRIORITISE - and this is the step I care about most. Put the measured cost next to LCP,
+   FCP and Start Render from Stage 60 and tell me honestly: FIX NOW, FIX LATER, or NO
+   ACTION. A 50 ms layout on a page with LCP 4.5 s is a rounding error and I would rather
+   hear that than get a fix list. Add: this measured the LOAD, so it is a lower bound - the
+   same tree is laid out again on every interaction and that lands in INP.
+   Show me the verdict and wait.
+
+5. PROVE IT (only if we agreed on FIX NOW). Build local variants as HTML FILES - do not
+   try to mutate the page at runtime. navigate_page's initScript does NOT survive the
+   reload that performance_start_trace performs, so a runtime removal silently never
+   happens and you would "prove" my fix does nothing. Download the HTML, inject
+   <base href>, one edit per variant plus an unmodified baseline, verify each edit actually
+   matched something, serve locally, then re-trace each variant 3 times rotated A,B,A,B.
+   Compare three numbers and tell me which cost each one measures:
+   - Total elements (parse, style, memory) - moves when you delete anything;
+   - "X of Y nodes needing layout" - moves ONLY for elements that are actually laid out;
+   - the duration in ms - noisy, judge it against the spread.
+   Know this before concluding: deleting a display:none subtree drops Total elements and
+   leaves layout untouched - measured, 69 elements removed, 408 -> 339, layout 322 of 322
+   both times, 51 vs 52 ms. Hidden elements are parsed and styled but not laid out. That
+   is a real win in parse/style/memory, just not a layout win - say which one it is.
+   Also: compare variant against the LOCAL baseline only. The same page served locally
+   reported 408 elements against 624 live, because third-party scripts behave differently
+   off-domain. Verdicts: SUPPORTED, REGRESSION, INCONCLUSIVE, per metric.
+
+6. FIX in MY code, using the owner column from step 3b - routed by my stack, one change at
+   a time, at the source file you named, then re-measure with the same emulation and report
+   before/after as median + node count. For findings owned by a dependency or a vendor
+   script, give me the setting or the loading change instead of an edit, and say so. Anything you make lazy must still be
+   what a crawler sees - do not hide indexable content behind an interaction.
+```
+
 ## 4. Extend: new stage (builder prompt)
 ```
 We're creating a new audit stage as a SEPARATE file in .ai/web-performance/audit/.
@@ -314,4 +417,68 @@ When RUN, the stage must (Do items):
 
 Write results to site-profile.md > ## Backend and findings.md. Show me the draft file
 first, save only after my OK.
+```
+
+## 9. Build the DOM-size stage (builder prompt)
+Paste after workshop 09 (30.07). Produces audit/70-dom-size.md - use this if you would
+rather have your AI generate the stage than copy the ready one.
+```
+Build a NEW audit stage as a SEPARATE file: .ai/web-performance/audit/70-dom-size.md.
+Same rules as card 4 (standalone, wire into 00-index.md "Stage order" and site-profile.md
+"## Progress"). DO stage, runs AFTER stage 60, reads ## Render start from site-profile.md.
+
+Topic: does the SIZE AND SHAPE of the DOM cost measurable main-thread time on this page,
+which part of the structure is responsible, and which code forces the recalculation.
+
+Build these two boundaries into the file, they are the point of the stage:
+- Node count is NOT the criterion. The old Lighthouse thresholds (~800 warn, ~1400 error)
+  are gone; Chrome flags a large layout or style recalculation, roughly 40 ms and up. The
+  stage must never report a node count as a problem on its own.
+- The stage must be allowed to end in "real, but not now". It compares its own measured
+  cost against LCP/FCP from stage 60 and outputs FIX NOW / FIX LATER / NO ACTION.
+
+When RUN, the stage must (Do items, all through the chrome-devtools MCP server):
+- emulate ONCE (mobile 412x765x2.6, Fast 4G, CPU 4x) and state the viewport next to every
+  number - hidden subtrees and below-the-fold counts are viewport-dependent.
+- performance_start_trace (reload, autoStop) x3, then performance_analyze_insight on the
+  DOMSize insight. Record verbatim: total elements, DOM depth AND the element that starts
+  the deepest chain, most children, and each "Layout update: Duration N ms, with X of Y
+  nodes needing layout". Structural stats are identical across runs, the duration is not -
+  treat sub-5 ms differences as noise. A missing DOMSize insight is a RESULT, not a failure.
+- performance_analyze_insight on ForcedReflow when present: it names the function and
+  script URL:line that forced synchronous layout, with per-frame ms. That is the owner.
+  Distinguish first-party bundle from third-party tag - the fix differs.
+- evaluate_script for the structure: scope to document.body, skip SVG internals, and report
+  deepest path, elements over 12 deep, div/span share, removable single-child wrappers,
+  display:none subtrees with their element counts, share below the fold, biggest subtrees,
+  and uniform repeated lists. Map each signal to a move: duplicated mobile/desktop tree ->
+  one structure styled by CSS; unopened modal -> render on interaction; deep chain ->
+  flatten wrappers; divitis -> fragments and semantic tags; below-fold bulk -> islands or
+  content-visibility; uniform list -> pagination or virtualisation.
+- Prove any fix by re-tracing variants (local copies with <base href>, one edit each,
+  rotated A,B,A,B, medians) and compare BOTH the duration and the "X of Y nodes" count -
+  the node count is stable, so it is the honest signal when milliseconds sit in the noise.
+- MAP EVERY FINDING BACK TO THE SOURCE before proposing anything - this is what makes it an
+  audit of a PROJECT and not of a web page. Strip build hashes from the rendered class names
+  (CSS Modules/styled-components suffixes), search the repo for the stable part, and output
+  finding | token | file:line | owner, where owner is: my component/template, my theme, a
+  dependency I configure (fix = a setting, not an edit), or a third-party script (markup is
+  not in the repo - verify it is absent from the server HTML too - so the lever is loading
+  strategy or configuration). Unattributed findings are reported as "source not identified",
+  never guessed. On WordPress also search plugins and the page builder's saved post meta.
+- Route fixes by stack (Next.js/React, WordPress + page builders, Astro), each pointing at
+  the file from the mapping step, and add the SEO caveat: what is rendered lazily must still
+  be what a crawler sees.
+- State at the top of the generated file that it runs against MY project - the URL from
+  site-profile.md, never a demo - and that any figure quoted in it as calibration was
+  measured elsewhere and must not be copied into findings or used as a threshold.
+
+Known traps to write into the file: viewport changes the answer; scope the script to body
+or <head> pollutes the "hidden" count; SVG internals inflate element counts and are not
+divitis; getComputedStyle/getBoundingClientRect in a loop force layout themselves; CSS
+Selector Stats is a DevTools UI feature and is NOT available through MCP - do not claim to
+have run it; selectors are matched right to left, which is why one careless wildcard rule
+can drag the whole tree into a recalculation.
+
+Show me the draft file first, save only after my OK.
 ```

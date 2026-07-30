@@ -77,6 +77,20 @@ Filled by Stage 60 (audit/60-render-start.md). Leave <TODO> until run.
 - Fixes to apply (file + change): <TODO routed by stack>
 - Re-tested on WebPageTest, same profile: <TODO date + before/after>
 
+## DOM size
+Filled by Stage 70 (audit/70-dom-size.md). Leave <TODO> until run.
+- Viewport the numbers were measured on: <TODO e.g. 412x765x2.6 mobile, Fast 4G, CPU 4x>
+- DOMSize insight present: <TODO yes / no - no large recalculation on this load>
+- Total elements / DOM depth / most children: <TODO n / n / n>
+- Element starting the deepest chain: <TODO tag + class, from the insight>
+- Largest layout or style recalculation (median of 3 runs + spread): <TODO n ms +/- n, X of Y nodes>
+- Forced reflow attributed to: <TODO script URL:line, or 'none - ordinary rendering'>
+- Structure findings (duplicated tree / hidden panel / deep chain / wrappers / below-fold /
+  repeated list): <TODO top 2-3 with element counts>
+- Priority verdict: <TODO FIX NOW / FIX LATER / NO ACTION> because <TODO vs LCP/FCP>
+- Fixes to apply (file + change): <TODO routed by stack>
+- Re-measured after the fix (median + node count): <TODO before/after>
+
 ## Progress
 - [ ] Stage 10 - profile and baseline
 - [ ] Stage 20 - network: DNS / TLS / HTTP
@@ -84,3 +98,4 @@ Filled by Stage 60 (audit/60-render-start.md). Leave <TODO> until run.
 - [ ] Stage 40 - cache & CDN (edge)
 - [ ] Stage 50 - backend triage (TTFB)
 - [ ] Stage 60 - render start (first paint)
+- [ ] Stage 70 - DOM size (recalc cost)
