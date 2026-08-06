@@ -33,6 +33,10 @@ you see in the workshop, compare it against this one and pull in the newer stage
 - `audit/70-dom-size.md` - stage 7: what the size and shape of the DOM cost in style and
   layout recalculation, which script forces it, and - explicitly - whether it is worth
   fixing yet. Node count is not the criterion; a 40 ms+ recalculation is.
+- `audit/80-scripts-and-third-party.md` - stage 8: when each script executes and what it
+  blocks while it does. Weight is not the criterion; measured main-thread time is. Covers
+  loading modes, third-party SPOF, the tag-manager cascade, and why a coverage report tells
+  you what to DEFER, not what to delete.
 - `wpt/mobile`, `wpt/desktop` - drop your WebPageTest JSON files here
 
 More stages (LCP, CLS, INP, images, fonts...) are added as we go, one per workshop.

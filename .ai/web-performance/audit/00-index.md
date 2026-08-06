@@ -33,6 +33,7 @@ single stage - each stage in audit/ is self-contained and can be run on its own.
 - 50 - backend triage (TTFB)       -> .ai/web-performance/audit/50-backend-triage.md
 - 60 - render start (first paint)  -> .ai/web-performance/audit/60-render-start.md
 - 70 - DOM size (recalc cost)      -> .ai/web-performance/audit/70-dom-size.md
+- 80 - scripts & third party       -> .ai/web-performance/audit/80-scripts-and-third-party.md
 - (more stages added per workshop: LCP, CLS, INP...)
 
 ## What each stage produces (the shape changes as you go up the stack)
@@ -45,6 +46,10 @@ single stage - each stage in audit/ is self-contained and can be run on its own.
   culprit, so the hard part is no longer finding the problem - it is deciding whether the
   problem is worth an afternoon next to what Stage 60 found. A stage can legitimately end
   in "real, but not now".
+- 80 produces a DECISION PER RESOURCE: the cost is easy to attribute (the trace names the
+  script) but the fix is rarely deletion - it is a loading strategy, chosen script by
+  script, and constrained by dependencies and by the business. The proof is also cheaper
+  than in 60/70: a request can be blocked and re-measured before any code is touched.
 
 ## How to resume
 Check the "## Progress" section in .ai/web-performance/site-profile.md and run the

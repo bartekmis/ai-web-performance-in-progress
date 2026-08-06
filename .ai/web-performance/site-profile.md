@@ -91,6 +91,23 @@ Filled by Stage 70 (audit/70-dom-size.md). Leave <TODO> until run.
 - Fixes to apply (file + change): <TODO routed by stack>
 - Re-measured after the fix (median + node count): <TODO before/after>
 
+## Scripts
+Filled by Stage 80 (audit/80-scripts-and-third-party.md). Leave <TODO> until run.
+- Viewport the numbers were measured on: <TODO e.g. 412x765x2.6 mobile, Fast 4G, CPU 4x>
+- Scripts on the audited page type (script / origin / 1st-3rd party / mode / position /
+  transfer / in server HTML): <TODO one row per script>
+- Main-thread time, first party vs third party (median of 3 runs + spread): <TODO n ms / n ms +/- n>
+- Heaviest by MEASURED time (not by size), and when it runs: <TODO script, n ms, before/after FCP>
+- Does the size order disagree with the time order: <TODO yes/no - state it if yes>
+- SPOF - third party in head without async/defer: <TODO none, or vendor + Start Render impact from the WPT SPOF test>
+- Tag manager cascade (container -> tags -> injected scripts): <TODO levels + timing, or 'no tag manager'>
+- Container config reviewed (exported JSON): <TODO tags unused / duplicated / interaction-triggered>
+- Interaction-triggered tags (route to INP stage): <TODO list, or none>
+- Coverage split - dead / needed later / needed now: <TODO n KB / n KB / n KB>
+- Priority verdict: <TODO FIX NOW / FIX LATER / NO ACTION> because <TODO vs LCP/FCP>
+- Per-script decisions (remove / defer / on demand / keep + preconnect): <TODO routed by stack>
+- Experiment result (blocked request, then shipped strategy): <TODO SUPPORTED / REGRESSION / INCONCLUSIVE + before/after>
+
 ## Progress
 - [ ] Stage 10 - profile and baseline
 - [ ] Stage 20 - network: DNS / TLS / HTTP
@@ -99,3 +116,4 @@ Filled by Stage 70 (audit/70-dom-size.md). Leave <TODO> until run.
 - [ ] Stage 50 - backend triage (TTFB)
 - [ ] Stage 60 - render start (first paint)
 - [ ] Stage 70 - DOM size (recalc cost)
+- [ ] Stage 80 - scripts and third party

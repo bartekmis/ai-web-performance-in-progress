@@ -218,6 +218,119 @@ recalculation is fine. Never tell me "you have N elements, that is too many".
    what a crawler sees - do not hide indexable content behind an interaction.
 ```
 
+## 3d. Stage 80 standalone: scripts and third party
+Paste after workshop 11 (6.08). Needs the chrome-devtools MCP server, plus WebPageTest for
+the SPOF check. If you use a tag manager, export its container config first - you will be
+asked for it.
+```
+Run .ai/web-performance/audit/80-scripts-and-third-party.md for MY project.
+
+Inputs: MY page URL and stack from site-profile.md, what Stage 60 found in ## Render start
+and Stage 70 in ## DOM size, the chrome-devtools MCP server, and MY SOURCE CODE - the repo
+you are running in. Show me each step before moving on.
+
+Measure MY page, the URL from site-profile.md. Do not substitute any example or demo site.
+If the URL, page types or stack are missing from the profile, ask me and wait.
+The deliverable is not "you have too much JavaScript" - it is: THIS script, loaded THIS
+way, from THIS file in my repo or from THIS vendor, costs THIS much main-thread time at
+THIS point in the load, and here is the change to when it runs.
+
+READ THIS FIRST, it decides whether the run is any good: weight is NOT the criterion.
+A script and an image of the same size are not the same cost - the image decodes largely
+off the main thread, the script must be transferred, parsed, compiled and executed, and
+two of those four happen on the main thread. Never flag a script because of its transfer
+size. The question is always: when does it execute, and what waits behind it?
+
+1. INVENTORY. Call emulate ONCE (mobile 412x765x2.6, Fast 4G, CPU 4x) and never change it.
+   CPU throttling is not optional here - without it, parse and compile are nearly invisible
+   and you will conclude that JavaScript is free. Navigate, then performance_start_trace
+   with reload and autoStop. Also curl the page and keep the raw server HTML.
+   Give me one row per script: script | origin | 1st/3rd party | mode | position |
+   transfer | in server HTML? Mode is sync / async / defer / module / module+async /
+   injected, read from the actual tag in the server HTML - not from what the framework
+   claims. "injected" means the tag is not in the server HTML at all; name its injector if
+   the initiator chain shows it.
+
+2. ATTRIBUTE. From the trace, give me main-thread time per script: parse/compile, execute,
+   and whether it ran before or after First Paint. If a ThirdParties insight exists, call
+   performance_analyze_insight on it and give me per-vendor main-thread time. Cross-check
+   against the ForcedReflow caller Stage 70 already named - a script that both executes
+   long and forces layout is the first candidate regardless of size.
+   Run the trace 3 times and give me the spread; that is my noise floor.
+   Then sort the table by MEASURED TIME, not by size, and tell me explicitly whether the
+   two orders disagree. They usually do, and that is the point of this stage.
+
+3. SPOF. Flag every third-party script in head WITHOUT async and WITHOUT defer - if the
+   vendor is slow or down, the parser stops and my page may never render. Report these
+   above any timing result. Then prove it: run a WebPageTest test with that domain
+   blackholed (the SPOF tab - a different test from DevTools request blocking) and tell me
+   what happened to Start Render.
+   third-party-web is fine for prioritising and for arguing with stakeholders, but it is a
+   population median - never write a number from it into my findings as if I had measured it.
+
+4. COVERAGE - and read this before you conclude anything. Coverage reports bytes not
+   executed UP TO THE MOMENT OF MEASUREMENT. It does not report dead code. A modal handler,
+   a form validator, a carousel below the fold will all look ~100% unused because nobody
+   has clicked anything yet. Deleting them does not optimise my page, it breaks it.
+   Split every unused figure into three buckets and never give me the raw total as a
+   saving: dead (not reachable on this page type - prove it by searching my repo), needed
+   later (only after an interaction or scroll - this is the bucket we act on, by loading it
+   later), needed now (stays). A Lighthouse "reduce unused JavaScript" number is a
+   prediction, not a measurement - cite it as a hypothesis to test, never as a result.
+
+5. TAG MANAGER, if I have one. Map the cascade: container fetched from a vendor origin ->
+   it executes -> its tags fire -> tags inject further scripts with their own origins and
+   connection costs -> those finally execute. Each level is serialised behind the previous
+   one. Give me the timing per level. Scripts at the injected level will not be in my repo
+   - say so instead of proposing an edit I cannot make.
+   Then ASK ME to export the container config (Admin > Export Container, JSON) and WAIT.
+   Analyse it: which tags exist, which triggers, which are duplicated, which never fired in
+   the trace. Do not guess the container contents from the page.
+   List every tag on an INTERACTION trigger (click, submit, phone/e-mail link, menu open).
+   Those run inside the same task as the user's click, before the browser can paint - they
+   never appear in a load trace. Tell me the load figure is a LOWER BOUND and route that
+   list to the INP stage. Do not measure INP here.
+
+6. PRIORITISE. Put script main-thread time (first vs third party) next to LCP, FCP and
+   Start Render from Stage 60 and the Stage 70 verdict, and tell me honestly: FIX NOW,
+   FIX LATER or NO ACTION. A SPOF finding means FIX NOW regardless of milliseconds.
+   Show me the verdict and wait.
+
+7. PROVE IT (only if we agreed on FIX NOW). Round 1: block the request (DevTools block by
+   URL or domain, or the WPT equivalent), 3 rounds rotated A,B,A,B, discard the warm-up,
+   compare medians against the spread.
+   AND CHECK THE PAGE STILL WORKS while blocked. Blocking a script the layout depends on
+   shows a beautiful improvement in a page that is now broken - content missing, half the
+   DOM never built. A number from a broken render is not a result.
+   Round 2, only if round 1 was SUPPORTED: test what I would actually ship, which is
+   usually not deletion but a different loading strategy - sync to defer, a tag pushed
+   behind first paint, a widget loaded on interaction. Build it as local HTML variants
+   (download the HTML, inject <base href>, one edit per variant plus an unmodified
+   baseline). Do NOT mutate the page at runtime: initScript does not survive the reload
+   performance_start_trace performs, so you would prove my fix does nothing.
+   Compare local variants against the LOCAL baseline only - a local copy loads a different
+   set of third-party scripts than production.
+   Verdicts: SUPPORTED, REGRESSION, INCONCLUSIVE.
+
+8. DECIDE, one line per script, in this order: is it needed on this page at all (if not,
+   remove - and prefer detecting the component over a per-URL exception list, which breaks
+   the moment I edit a page); does it render something above the fold (stays early, defer,
+   in head, after the CSS); does it have dependencies or require order (defer, NEVER async -
+   async between dependent scripts is not a trade-off, it is a bug); is it needed only after
+   an interaction or scroll (load on demand); is it third party (the levers are loading
+   strategy, configuration or dropping the vendor - not a source edit; and warm the
+   connection with preconnect even when you defer the script, but never to an origin we
+   fetch nothing from).
+   Route the fixes by my stack: WordPress - wp_enqueue_script strategy and
+   wp_dequeue_script rather than editing plugins; Next.js - next/script afterInteractive or
+   lazyOnload, next/dynamic, and check for barrel files defeating code splitting; Astro -
+   client:visible / client:idle, and revisit every hydrated island.
+
+9. FIX one thing at a time in the file you named, re-measure on the same emulation, report
+   before/after. Last line, always: this measured the LOAD - tags firing on interaction
+   cost extra and show up in INP, not here.
+```
+
 ## 4. Extend: new stage (builder prompt)
 ```
 We're creating a new audit stage as a SEPARATE file in .ai/web-performance/audit/.
