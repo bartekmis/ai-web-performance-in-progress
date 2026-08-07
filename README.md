@@ -37,9 +37,15 @@ you see in the workshop, compare it against this one and pull in the newer stage
   blocks while it does. Weight is not the criterion; measured main-thread time is. Covers
   loading modes, third-party SPOF, the tag-manager cascade, and why a coverage report tells
   you what to DEFER, not what to delete.
+- `audit/90-images-and-video.md` - stage 9: images and video, treated as **two separate
+  populations**. The LCP element is a latency problem (how late the browser discovers it,
+  what priority it gets); every other image is a bandwidth problem (dimension, format,
+  deferral) - and the treatment that helps one hurts the other. Levers are applied in a
+  fixed order: dimension, format, compression, loading strategy. Covers `srcset`/`sizes`,
+  `img` vs `background-image`, SVG and base64, and video including third-party embeds.
 - `wpt/mobile`, `wpt/desktop` - drop your WebPageTest JSON files here
 
-More stages (LCP, CLS, INP, images, fonts...) are added as we go, one per workshop.
+More stages (fonts, CLS, INP...) are added as we go, one per workshop.
 
 ## How to use it
 

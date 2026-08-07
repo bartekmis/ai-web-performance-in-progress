@@ -331,6 +331,196 @@ size. The question is always: when does it execute, and what waits behind it?
    cost extra and show up in INP, not here.
 ```
 
+## 3e. Stage 90 standalone: images and video
+Paste after workshop 12 (7.08). Needs the chrome-devtools MCP server. No WebPageTest
+required, but a WPT run at the same profile is a useful cross-check on the LCP element.
+```
+Run .ai/web-performance/audit/90-images-and-video.md for MY project.
+
+Inputs: MY page URL and stack from site-profile.md, what Stage 60 found in ## Render start,
+Stage 30 in ## Preconnect, Stage 40 in ## Cache & CDN and Stage 80 in ## Scripts, the
+chrome-devtools MCP server, and MY SOURCE CODE - the repo you are running in. Show me each
+step before moving on.
+
+Measure MY page, the URL from site-profile.md. Do not substitute any example or demo site.
+If the URL, page types or stack are missing from the profile, ask me and wait.
+The deliverable is not "your images are too heavy" - it is: THIS image, at THIS intrinsic
+size, rendered at THIS size, in THIS format, discovered at THIS moment, from THIS file in
+my repo, and here is the one change that matters most for it.
+
+READ THIS FIRST, it decides whether the run is any good: the images on my page are TWO
+populations, not one, and they are fixed by opposite means.
+- The LCP element is a LATENCY problem: its cost is how late the browser learns it exists
+  and what priority it then gets. Compression helps a little; discoverability and priority
+  help a lot; lazy-loading it is a regression.
+- Every other image is a BANDWIDTH problem: dimension, format, compression, deferral - and
+  giving them the LCP treatment (eager, high priority, preloaded) makes my page WORSE,
+  because they then compete with the one image that decides the metric.
+Give me TWO separate verdicts at the end. One verdict for "the images" means you skipped
+the analysis.
+Second rule: the levers have a fixed order - dimension, then format, then compression, then
+loading strategy. A 3000 px file in a 300 px box is a 10x error; re-encoding it is maybe a
+30% one. If you propose a format change for an image that is grossly oversized, you skipped
+a step - tell me so.
+
+1. INVENTORY. Call emulate ONCE (mobile 412x765x2.6, Fast 4G, CPU 4x) and never change it.
+   Viewport matters more here than anywhere earlier: srcset picks a different file per
+   width and per DPR, so a desktop run audits files my mobile users never download. State
+   the viewport next to every number.
+   Navigate, then performance_start_trace with reload and autoStop. Also curl the page and
+   keep the raw server HTML - an image in the DOM but not in the server HTML was injected
+   by a script, cannot be found by the preload scanner, and usually cannot be fixed in my
+   template.
+   Then use evaluate_script to collect, per <img>: currentSrc (what srcset ACTUALLY picked,
+   not the src attribute), naturalWidth/naturalHeight, the rendered box from
+   getBoundingClientRect, devicePixelRatio, whether width and height attributes are both
+   present, and the loading / fetchpriority / decoding / sizes / srcset attributes. Do the
+   same for CSS backgrounds (getComputedStyle backgroundImage), <video> and <iframe> embeds
+   - backgrounds will not appear in the img list and they are the ones most likely to be
+   the problem.
+   Give me one row per asset: asset | element type | origin | intrinsic px | rendered px x
+   DPR | format | transfer | loading | fetchpriority | in server HTML?
+
+2. THE LCP ELEMENT, on its own. Identify it from the trace, not by eye - if an LCP insight
+   exists (LCPBreakdown / LCPDiscovery), call performance_analyze_insight and give me the
+   phase split: TTFB, load delay, load time, render delay, median of 3 with the spread.
+   Re-confirm it at MY mobile viewport; the desktop answer is frequently a different
+   element.
+   Then classify how it is delivered, because the fix follows entirely from this: <img> in
+   the server HTML (the scanner finds it early), <img> injected by a script (the scanner
+   never sees it - discovery waits for that script), CSS background-image (the URL is
+   inside a stylesheet, so the browser needs the CSS, the CSSOM, rule matching and layout
+   before it knows the image exists - this is the most common reason an LCP image starts
+   late, and no amount of compression fixes it), or a carousel slide (add the carousel's
+   JavaScript to the chain).
+   Read the phase split and tell me which problem this is: load delay dominates = DISCOVERY
+   (make it findable, plus priority); load time dominates = TRANSFER (dimension and format);
+   render delay dominates = not an image problem, route it back to Stage 60 or 80.
+   Check on this one element: is it loading="lazy" (a direct regression - report it as the
+   finding), what priority did it get in the network list, and is it cross-origin without a
+   preconnect from Stage 30?
+
+3. DIMENSION - the first lever, for everything EXCEPT the LCP element. Compute intrinsic px
+   divided by rendered px x DPR. A ratio above 2 in width means at least 4x the pixels
+   needed, since area scales with the square. Sort by WASTED PIXELS, not by file size.
+   For each oversized image tell me WHY, because the fix differs: no srcset at all; srcset
+   present but sizes wrong or missing (without sizes the browser assumes 100vw and a
+   one-third-width column gets a file three times too wide - this is the most common cause
+   and it is invisible unless you compare currentSrc against the rendered box); or the
+   variants that exist do not match the layout.
+   Note where sizes="auto" would help - it only works on images that are also
+   loading="lazy", so it is a fix for the long tail, never for the hero.
+
+4. FORMAT AND COMPRESSION - second and third levers, only for images already near the right
+   dimension. Record the current format, whether a modern one is served at all, and whether
+   it is negotiated per browser (picture + source type, or an image CDN) or hardcoded with
+   no fallback. Do not quote a generic percentage saving - the figure varies enormously by
+   image content; measure my actual files if you propose a change.
+   Then ASK ME which optimisation moment my project uses and WAIT: upload time (converted
+   and resized when the file enters the system - cheap at runtime, but only applies to media
+   uploaded after the change, so existing files need regeneration) or delivery time (one
+   master, an image CDN transforms per request and caches at the edge - retroactive and
+   flexible, but adds a third-party origin with its own connection cost, and the first
+   request for each variant is slow). Usually both is the right answer.
+   And say it plainly: an image CDN WITHOUT correct srcset and sizes does almost nothing -
+   it serves one large transformed file to every device.
+
+5. LOADING STRATEGY. Above the fold but not the LCP: eager, ordinary priority - do NOT mark
+   these high. Priority is zero-sum and every high-priority image competes with the LCP
+   image, the CSS and the JavaScript. Flag any page marking several images high.
+   Below the fold: loading="lazy", decoding="async" as hygiene (a hint with a modest effect
+   - never a headline finding).
+   Hidden until an interaction (mega-menu, modal, closed tab): frequently loaded eagerly
+   because the markup is merely hidden - prefer not putting it in the document at all.
+   CSS backgrounds below the fold: there is no native lazy loading for background-image.
+   Either convert to <img> (which also gets alt text and native lazy) or apply the
+   background from an IntersectionObserver. Say which fits the element.
+   CSS background AS the LCP element: make it an <img> if the design allows; if it cannot
+   move, preload it with fetchpriority="high" and use imagesrcset/imagesizes so the
+   preloaded file matches what the CSS will request, otherwise we download two. Tell me
+   honestly that a preloaded background still typically paints later than the same file as
+   an <img>, because rendering still waits on the CSSOM and layout.
+   iframe embeds: loading="lazy" is supported but browsers apply their own heuristics and
+   often load them early - verify in the waterfall instead of assuming.
+   Missing width/height: record every one, and check the computed styles too (CSS can
+   discard the reserved box). This is a CLS finding - route it, do not measure it here.
+
+6. SVG AND BASE64. Per SVG: inline, external <img>, or sprite. State the trade-off for MY
+   page - inline costs no request and paints immediately but adds its weight to EVERY HTML
+   response and cannot be cached separately; external is cacheable at one request; a sprite
+   is one request for many icons but a project-wide sprite can be large enough to compete
+   with the CSS and JavaScript in the initial burst. Give me the document weight
+   contributed by inline SVG - if my HTML is unusually large, this is frequently why.
+   Run the SVGs through SVGO and give me before/after; design-tool exports routinely carry
+   several times the markup they need.
+   Flag every data URI. base64 inflates the payload by roughly a third, moves the bytes
+   into a document that is usually not cached, and forfeits caching of the asset - and the
+   "fewer requests" argument it rests on is largely obsolete over HTTP/2 and HTTP/3. Give
+   me the total base64 payload in the document.
+
+7. VIDEO, if any. Self-hosted <video>: duration, transfer, resolution and the preload value
+   - preload="auto" on a below-the-fold video buffers it during the initial page load,
+   alongside the CSS and the JavaScript. Is a poster set? Read from the trace what the LCP
+   candidate actually is on a page with a hero video; do not assert it.
+   Flag every animated GIF: it is a sequence of full frames with no modern compression, and
+   the same clip as MP4 or WebM is typically an order of magnitude smaller. The replacement
+   is <video autoplay muted loop playsinline> - muted is what makes autoplay permitted at
+   all, playsinline is what stops iOS going fullscreen.
+   Per-device variants: there is no native responsive selection for video. Report the
+   current state; do not build the JavaScript solution here.
+   YouTube / Vimeo: these are not one file, they are a player - frequently megabytes of
+   JavaScript and CSS before anything plays. Give me the transfer and main-thread cost, and
+   propose a facade (our own thumbnail plus play button, real embed inserted on click;
+   lite-youtube-embed or @next/third-parties do this ready-made). Say plainly that this
+   changes nothing for someone who plays the video and saves everything for the majority
+   who do not.
+
+8. PRIORITISE - TWO verdicts, separately, and then WAIT.
+   A) The LCP element: what it is, how delivered, at which viewport, the phase split with
+   the spread, which phase dominates, whether it is lazy/low-priority/cross-origin, then
+   FIX NOW / FIX LATER / NO ACTION plus the single highest-value change.
+   B) Everything else: total image transfer, how much is wasted pixels, the worst 3 with
+   causes, SVG and base64 payload, video findings, and how all of it compares to what Stage
+   60 and Stage 80 found - is media a visible share of this page's problem, or noise next
+   to a 2-second TTFB? Then FIX NOW / FIX LATER / NO ACTION.
+   The two can disagree and frequently do. Say so.
+
+9. PROVE IT (only if we agreed on FIX NOW). Normally the LCP element's discovery or
+   priority, since that is where the leverage is. Build local HTML variants (download the
+   page, inject <base href>, one edit per variant plus an unmodified baseline), serve
+   locally, same emulation, 3 rounds rotated A,B,A,B, discard the warm-up, compare medians
+   against the larger spread. Do NOT mutate the page at runtime - initScript does not
+   survive the reload performance_start_trace performs. Compare local against LOCAL
+   baseline only.
+   AND CHECK WHAT YOU ARE MEASURING: removing an image improves LCP by making the page
+   emptier. If the variant does not paint the same content, the number is not a result.
+   Expect asymmetry and report it honestly - a discovery fix on the LCP element often moves
+   LCP visibly, while resizing twenty below-the-fold images moves no headline metric at all
+   and simply saves transfer. Both are legitimate; do not inflate the second into an LCP win.
+
+10. DECIDE, one line per asset, levers in order: resize to what the layout needs with real
+    srcset and sizes; convert with a working fallback; compress to the lowest quality that
+    still looks right on MY images; defer everything below the fold while keeping the LCP
+    element eager, discoverable and high priority; warm the connection for an external image
+    origin, and reconsider serving the LCP image from my own origin so the first visit does
+    not pay DNS + TCP + TLS before the most important byte on the page.
+    Route by my stack: WordPress - add_image_size plus thumbnail regeneration (adding the
+    size alone does nothing for existing media), and check what the page builder emits,
+    including its "exclude the first N images from lazy loading" setting, which counts DOM
+    order and can be spent on a logo and two icons before it reaches the real hero - verify
+    against the element the trace named. Next.js - the sizes prop must describe the real
+    layout or the whole benefit is lost, the priority prop emits a preload so it belongs on
+    the LCP element only, and at scale on-the-fly optimisation is CPU and memory on MY
+    server (connect that to Stage 50 if the origin is under pressure). Astro - Image/Picture
+    from astro:assets with explicit widths, formats and sizes, and check whether remote
+    images are being passed through unprocessed.
+
+11. FIX one thing at a time in the file you named, re-measure on the same emulation, report
+    before/after. Last line, always: these numbers are for <viewport> - srcset picks
+    different files at other widths, and missing width/height was recorded, not measured,
+    because that belongs to the CLS stage.
+```
+
 ## 4. Extend: new stage (builder prompt)
 ```
 We're creating a new audit stage as a SEPARATE file in .ai/web-performance/audit/.

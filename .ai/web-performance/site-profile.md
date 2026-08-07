@@ -108,6 +108,39 @@ Filled by Stage 80 (audit/80-scripts-and-third-party.md). Leave <TODO> until run
 - Per-script decisions (remove / defer / on demand / keep + preconnect): <TODO routed by stack>
 - Experiment result (blocked request, then shipped strategy): <TODO SUPPORTED / REGRESSION / INCONCLUSIVE + before/after>
 
+## Media
+Filled by Stage 90 (audit/90-images-and-video.md). Leave <TODO> until run.
+- Viewport the numbers were measured on: <TODO e.g. 412x765x2.6 mobile, Fast 4G, CPU 4x>
+- Assets on the audited page type (asset / element type / origin / intrinsic px / rendered
+  px x DPR / format / transfer / loading / fetchpriority / in server HTML): <TODO one row
+  per asset>
+
+### LCP element (latency problem - its own verdict)
+- What it is, and at which viewport: <TODO element + viewport>
+- Delivered as: <TODO img in server HTML / injected by script / css-background / carousel slide>
+- Phase split (median of 3 + spread): TTFB <TODO> / load delay <TODO> / load time <TODO> /
+  render delay <TODO>
+- Dominant phase -> problem class: <TODO discovery / transfer / render (route back to 60/80)>
+- Lazy-loaded? Priority granted? Cross-origin and preconnected?: <TODO / TODO / TODO>
+- Priority verdict: <TODO FIX NOW / FIX LATER / NO ACTION> because <TODO>
+- Highest-value single change: <TODO>
+
+### Everything else (bandwidth problem - its own verdict)
+- Total image transfer for this page type: <TODO n KB>
+- Oversized images (intrinsic / rendered x DPR ratio > 2): <TODO n of n>
+- Worst 3 by wasted pixels + cause (no srcset / wrong sizes / wrong variants): <TODO>
+- currentSrc vs src disagreement (what my users actually downloaded): <TODO>
+- Optimisation moment in use: <TODO upload time / delivery time / both / neither>
+- Format coverage (modern format served, with fallback): <TODO>
+- CSS backgrounds below the fold (no native lazy): <TODO list / none>
+- Missing width/height or aspect-ratio (ROUTE to CLS stage, do not measure here): <TODO list>
+- SVG embedding (inline / img / sprite) + document weight from inline SVG: <TODO n KB>
+- base64 / data URI payload in the document: <TODO n KB / none>
+- Video: preload value, poster, GIFs to replace, third-party embeds + player cost: <TODO / none>
+- Priority verdict: <TODO FIX NOW / FIX LATER / NO ACTION> because <TODO vs LCP/FCP>
+- Per-asset decisions (resize / convert / compress / defer / preconnect): <TODO routed by stack>
+- Experiment result: <TODO SUPPORTED / REGRESSION / INCONCLUSIVE + before/after>
+
 ## Progress
 - [ ] Stage 10 - profile and baseline
 - [ ] Stage 20 - network: DNS / TLS / HTTP
@@ -117,3 +150,4 @@ Filled by Stage 80 (audit/80-scripts-and-third-party.md). Leave <TODO> until run
 - [ ] Stage 60 - render start (first paint)
 - [ ] Stage 70 - DOM size (recalc cost)
 - [ ] Stage 80 - scripts and third party
+- [ ] Stage 90 - images and video
