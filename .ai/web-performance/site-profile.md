@@ -141,6 +141,55 @@ Filled by Stage 90 (audit/90-images-and-video.md). Leave <TODO> until run.
 - Per-asset decisions (resize / convert / compress / defer / preconnect): <TODO routed by stack>
 - Experiment result: <TODO SUPPORTED / REGRESSION / INCONCLUSIVE + before/after>
 
+## Fonts
+Filled by Stage 100 (audit/100-fonts.md). Leave <TODO> until run.
+- Viewport the numbers were measured on: <TODO e.g. 412x765x2.6 mobile, Fast 4G, CPU 4x>
+- Font files loaded on the audited page type (file / family-weight-style / origin / format /
+  transfer / unicode-range / font-display / preloaded? / used above the fold? / elements):
+  <TODO one row per FILE, not per declaration>
+- @font-face declarations in my CSS vs faces actually loaded: <TODO n vs n>
+- Faces loaded but used by zero elements: <TODO list, or none>
+
+### The chain (latency - where the cost really is)
+- Chain per file (A inline+preload / B inline / C own stylesheet / D third-party stylesheet /
+  E via @import / F injected by script) + hops before the request: <TODO one row per file>
+- Deepest chain on this page type: <TODO letter, file, n hops>
+- Files whose request starts BEFORE Start Render: <TODO list> (competing with the critical path)
+- Files whose request starts AFTER Start Render: <TODO list> (repaint + shift, not a slow start)
+
+### The budget (this is the number the stage exists to produce)
+- Is the LCP element text or an image (from Stage 90)?: <TODO text in <face> / image>
+- Critical face - renders the LCP element / primary above-fold copy: <TODO family + weight>
+- PRELOAD BUDGET for this page type: <TODO N = 0 / 1 / 2> because <TODO>
+- Currently preloaded files, KEEP or REMOVE against the budget: <TODO per file>
+- Preload correctness (as=font, type, crossorigin, URL identical to @font-face): <TODO / TODO>
+
+### The trade-off (there is no free option)
+- font-display in effect per face, and whether it was chosen or inherited: <TODO>
+- Cost this project is choosing: <TODO invisible text (block) / layout shift (swap) /
+  font may not appear (optional)>
+- Layout shift attributable to the font swap (value + timestamp vs font load): <TODO>
+- Metric-matched fallback (size-adjust / ascent-override / descent-override) present?: <TODO>
+
+### Bytes (second-order lever)
+- Total font transfer for this page type / number of faces: <TODO n KB / n>
+- Weights and styles downloaded vs actually used: <TODO>
+- Variable font compared against the static set (actual file sizes): <TODO / not applicable>
+- Subsetting and unicode-range in use, character coverage vs my content: <TODO>
+- Licence permits modification/subsetting?: <TODO yes / no / free font>
+- Formats served (WOFF2 or a finding): <TODO>
+- Icon font: glyphs available vs glyphs used: <TODO / none>
+
+### Origin and cache
+- First-party or third-party font origin: <TODO> (preconnected? see Stage 30: <TODO>)
+- Cloudflare Fonts in use as a mitigation: <TODO yes / no / not applicable>
+- Cache TTL on font files: <TODO>
+
+- Priority verdict: <TODO FIX NOW / FIX LATER / NO ACTION> because <TODO vs LCP/FCP/TTFB>
+- Per-file policy (preload / eager / defer / drop + font-display): <TODO routed by stack>
+- Experiment result (baseline vs preload-critical-only vs preload-all): <TODO SUPPORTED /
+  REGRESSION / INCONCLUSIVE + FCP, LCP and CLS per variant>
+
 ## Progress
 - [ ] Stage 10 - profile and baseline
 - [ ] Stage 20 - network: DNS / TLS / HTTP
@@ -151,3 +200,4 @@ Filled by Stage 90 (audit/90-images-and-video.md). Leave <TODO> until run.
 - [ ] Stage 70 - DOM size (recalc cost)
 - [ ] Stage 80 - scripts and third party
 - [ ] Stage 90 - images and video
+- [ ] Stage 100 - fonts

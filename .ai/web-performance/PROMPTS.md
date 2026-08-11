@@ -521,6 +521,151 @@ a step - tell me so.
     because that belongs to the CLS stage.
 ```
 
+## 3f. Stage 100 standalone: fonts
+Paste after workshop 13 (11.08). Needs the chrome-devtools MCP server. Run Stage 90 first
+if you can - whether the LCP element is text or an image decides this whole stage.
+```
+Run .ai/web-performance/audit/100-fonts.md for MY project.
+
+Inputs: MY page URL and stack from site-profile.md, what Stage 90 found in ## Media (is the
+LCP element text or an image?), Stage 60 in ## Render start, Stage 30 in ## Preconnect,
+Stage 40 in ## Cache & CDN and Stage 80 in ## Scripts, the chrome-devtools MCP server, and
+MY SOURCE CODE - the repo you are running in. Show me each step before moving on.
+
+Measure MY page, the URL from site-profile.md. Do not substitute any example or demo site.
+If the URL, page types or stack are missing from the profile, ask me and wait.
+The deliverable is not "self-host your fonts and use font-display: swap" - it is: THIS font
+file, at THIS weight, discovered after THIS many hops, needed (or not) by THIS element above
+the fold, from THIS declaration in my repo, and the one policy that applies to it.
+
+READ THIS FIRST, it decides whether the run is any good.
+A font is not a file, it is the END OF A CHAIN: HTML -> CSS -> possibly another CSS via
+@import -> CSSOM -> a selector matched to a real element -> only now does the file enter the
+network queue. The cost lives in the hops, not in the kilobytes. And @font-face declarations
+are NOT downloads: fifteen declarations can be zero requests.
+Second, and this is the rule that makes or breaks the stage: PRELOAD IS ZERO-SUM. It does
+not make a font faster in isolation, it moves that font ahead of the CSS, the JavaScript and
+the LCP image on the same connection. You must output a NUMBER - how many font files may be
+preloaded on this page type - and it is normally 0 or 1, occasionally 2. If you propose more
+than two, justify it with a measurement or withdraw it.
+Third: while a font is in flight the page must either hide text (block/auto: up to ~3 s of
+invisible text) or show a fallback and then shift (swap). There is no free option. Tell me
+which cost this project is CHOOSING - do not recommend swap by reflex - and if it is swap,
+metric matching is the price of that choice, not an extra.
+
+1. INVENTORY. Call emulate ONCE (mobile 412x765x2.6, Fast 4G, CPU 4x) and never change it.
+   Navigate, then performance_start_trace with reload and autoStop. Also curl the page and
+   keep the raw server HTML.
+   Collect TWO things with evaluate_script, because the gap between them is the finding:
+   (a) what the browser actually loaded - iterate document.fonts and keep the faces with
+   status "loaded", with family, weight, style, unicodeRange and display; (b) what the page
+   above the fold actually renders in - walk the elements inside the initial viewport that
+   contain text, read the computed font-family, weight and style, and count elements per
+   face. The WebPerf Snippets snippet fonts-preloaded-loaded-and-used-above-the-fold does
+   exactly this cross-reference including preload status and font-display; you may paste it
+   through evaluate_script instead. Say where the numbers came from.
+   Cross-reference the trace so every face maps to a real file, transfer size and origin.
+   Give me one row per FILE, not per declaration: file | family/weight/style | origin |
+   format | transfer | unicode-range | font-display | preloaded? | used above the fold? |
+   elements using it. Flag immediately: faces loaded but used by zero elements, and any face
+   used above the fold that is NOT preloaded while some other face IS.
+
+2. THE CHAIN, per file. Reconstruct what had to happen before each request started and read
+   the start time from the waterfall. Classify each file into exactly one chain: A =
+   @font-face inline in the document AND the file preloaded; B = inline, no preload; C =
+   @font-face in an external stylesheet on my origin; D = in a third-party stylesheet (the
+   standard Google Fonts embed: DNS + TCP + TLS, then the stylesheet, and only then does the
+   browser learn the file URLs, which live on yet another origin); E = the stylesheet is
+   reached through @import from another stylesheet, so two serialised downloads happen
+   before the @font-face is even parsed - the deepest chain in common use and invisible in
+   the HTML; F = the stylesheet is injected by JavaScript, so add that script's download and
+   execution. Record chain letter, hop count, request start, and the delta from Start
+   Render. Sort by hops, not by transfer size. A file whose request starts AFTER Start
+   Render is not delaying the first paint - its cost is a repaint and a shift, so do not
+   report it as a render-start problem.
+
+3. WHICH FACE IS CRITICAL. From (b) above and from Stage 90: which single face renders the
+   LCP text? If Stage 90 says the LCP element is an image, say so - the budget probably
+   belongs to that image. Put every loaded face in one of three tiers: critical (renders the
+   LCP element or the primary above-fold copy), above the fold but secondary, and below the
+   fold / interaction-only / icon font. Check the failure mode that appears in almost every
+   page builder: a theme preloading one weight globally while individual templates render a
+   different weight, so on most page types the budget is spent on a file the page never uses.
+   Verify per page type, not once for the site.
+
+4. THE BUDGET. State N for this page type and which file gets it. Then list every currently
+   preloaded file as KEEP or REMOVE. Where preload stays, verify it is correct, because a
+   wrong preload is worse than none: as="font", type="font/woff2", crossorigin present (font
+   requests are CORS-mode even same-origin - without it the file is fetched TWICE, check the
+   waterfall for the duplicate), and the preloaded URL byte-identical to the URL @font-face
+   will request (watch cache-busting query strings and CDN rewrites). Say plainly what
+   preload does not do: it does not shorten the chain for the other faces, does not change
+   font-display, and does not make a third-party origin local.
+
+5. THE TRADE-OFF. Record font-display per face and whether it was chosen or inherited from a
+   provider default - auto is an unmade decision, not a setting, and behaves like block.
+   Then MEASURE the swap: find the layout shift events in the trace and check whether their
+   timestamps coincide with the font finishing loading. Give me the shift value and the
+   moment. If the choice is swap, check whether a metric-matched fallback exists
+   (size-adjust, ascent-override, descent-override, line-gap-override) and verify it in the
+   computed styles, not just in the CSS - swap with no metric matching is an accepted layout
+   shift that nobody decided to accept. Note where the framework already generates these so
+   we do not do the work twice.
+
+6. BYTES, in this order and only now: cut faces nothing renders and weights the design does
+   not use; compare a variable font against the actual sum of my static files (often smaller,
+   not automatically); check subsetting and unicode-range against MY content - for Polish
+   that is latin + latin-ext and a subset that drops the diacritics is a bug, not an
+   optimisation; WOFF2 or it is a finding. Ask me whether my faces are licensed for
+   modification BEFORE proposing a subset. If an icon font is present, count how many of its
+   glyphs the page actually uses.
+
+7. ORIGIN AND CACHE. Self-host unless there is a reason not to: a third-party origin costs
+   DNS + TCP + TLS on the first visit before the browser even knows which files it needs, and
+   the cache is not shared across sites. If it is Google Fonts and the template cannot change,
+   record Cloudflare Fonts as the mitigation - and record it accurately: it moves the origin,
+   it does not reduce my declared faces, does not subset, does not choose the preload. Fonts
+   are immutable, so a long TTL (a year) is correct; with a third-party provider the TTL is
+   theirs, which is itself an argument for self-hosting.
+
+8. VERDICT, then stop and show me: deepest chain and the file at the end of it; the critical
+   face; the budget N and who gets it; the cost being chosen and the measured shift; total
+   font transfer, faces, and how many are unused above the fold; and how all of that compares
+   to what Stages 60, 80 and 90 found - is the font chain a visible share of this page's
+   problem or noise next to a 2-second TTFB. FIX NOW / FIX LATER / NO ACTION. Wait for me.
+
+9. EXPERIMENT, only on FIX NOW. Build local HTML variants as in Stage 60.5 (download the
+   page, inject <base href>, one edit per variant, plus an untouched baseline) - do NOT use
+   initScript, it does not survive the reload the trace performs. Run at least three:
+   baseline; preload the critical face ONLY; preload EVERY face. The third is not padding -
+   it is the control that demonstrates preload is zero-sum, and on a page with several faces
+   it frequently measures worse than the baseline. 3 rounds rotated A,B,C,A,B,C, first load
+   discarded, medians compared against the larger spread. Record FCP, Start Render, LCP AND
+   CLS for every variant - a change that improves LCP while adding a shift has not
+   necessarily won, and this is the stage where that happens. SUPPORTED / REGRESSION /
+   INCONCLUSIVE.
+
+10. POLICY PER FILE: preload / eager / defer / drop, plus font-display, in this order - cut
+    unused faces, shorten the chain (no @import, first-party origin, @font-face reachable
+    early), spend the budget on exactly one file and spend it correctly, choose the cost and
+    pay for swap with metric matching, then bytes, then cache.
+    Route by my stack: WordPress - check the theme and builder settings FIRST (native
+    "host Google Fonts locally" and a font-display setting beat writing code); builders
+    preload a fixed set of faces globally, so when the LCP heading uses a different weight per
+    template the budget is being spent on the wrong file, and the reliable fix is a small
+    must-use plugin emitting the preload for the face THIS template renders - verify the
+    emitted <link> in the served HTML, not the code. Next.js - next/font self-hosts at build
+    time and generates the metric-matched fallback, so confirm it is actually in use rather
+    than a raw <link> to a third party, and check what it preloaded against the budget,
+    because several font loaders preload several faces. Astro - fonts are plain static assets
+    and everything here is explicit and under my control; confirm the preload link and the
+    @font-face reference the identical URL after the build hashes it.
+
+11. FIX one thing at a time in the file you named, re-measure on the same emulation, report
+    before/after including CLS. Last line, always: these numbers are for <viewport>, and the
+    swap shift I measured belongs in the CLS budget for the CLS stage.
+```
+
 ## 4. Extend: new stage (builder prompt)
 ```
 We're creating a new audit stage as a SEPARATE file in .ai/web-performance/audit/.

@@ -35,7 +35,8 @@ single stage - each stage in audit/ is self-contained and can be run on its own.
 - 70 - DOM size (recalc cost)      -> .ai/web-performance/audit/70-dom-size.md
 - 80 - scripts & third party       -> .ai/web-performance/audit/80-scripts-and-third-party.md
 - 90 - images and video            -> .ai/web-performance/audit/90-images-and-video.md
-- (more stages added per workshop: fonts, CLS, INP...)
+- 100 - fonts                      -> .ai/web-performance/audit/100-fonts.md
+- (more stages added per workshop: CLS, INP...)
 
 ## What each stage produces (the shape changes as you go up the stack)
 - 10-40 read a VALUE: the answer exists and can be measured directly.
@@ -56,6 +57,14 @@ single stage - each stage in audit/ is self-contained and can be run on its own.
   element is a LATENCY problem (discovery and priority) while every other image is a
   BANDWIDTH problem (dimension, format, deferral), and the treatment that helps one hurts
   the other. A stage that returns a single verdict for "the images" has got it wrong.
+- 100 produces A BUDGET AND A CHOSEN COST. The inventory is trivial here - the browser lists
+  the loaded faces in one call - and the difficulty moves to arithmetic and to a trade-off
+  that cannot be optimised away. Every lever in the stage competes for the same connection,
+  so preload is zero-sum: the stage must output a NUMBER (how many faces may be preloaded,
+  usually 0 or 1) and prove it, because preloading all of them frequently measures worse
+  than preloading none. And while a font is in flight the page must either hide text or
+  shift it - the stage names which cost the project is choosing rather than recommending
+  swap by reflex.
 
 ## How to resume
 Check the "## Progress" section in .ai/web-performance/site-profile.md and run the

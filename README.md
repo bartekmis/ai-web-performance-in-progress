@@ -43,9 +43,18 @@ you see in the workshop, compare it against this one and pull in the newer stage
   deferral) - and the treatment that helps one hurts the other. Levers are applied in a
   fixed order: dimension, format, compression, loading strategy. Covers `srcset`/`sizes`,
   `img` vs `background-image`, SVG and base64, and video including third-party embeds.
+- `audit/100-fonts.md` - stage 10: fonts, treated as the END OF A CHAIN rather than as
+  files. Nothing about a font request is decided by the font - it is decided by how many
+  hops (HTML, CSS, an `@import`, CSSOM, a matched selector) happened before the browser knew
+  the file existed. The stage produces a **preload budget**: a number, usually 0 or 1,
+  because preload is zero-sum and preloading every face routinely measures worse than
+  preloading none. It also forces the trade-off nobody can optimise away - hide the text
+  (`block`) or shift it (`swap`) - and makes the project choose one on purpose, with metric
+  matching as the price of `swap`. Bytes (weights, subsetting, `unicode-range`, WOFF2,
+  variable fonts) come last, and are reported as transfer saved, not as a metric win.
 - `wpt/mobile`, `wpt/desktop` - drop your WebPageTest JSON files here
 
-More stages (fonts, CLS, INP...) are added as we go, one per workshop.
+More stages (CLS, INP...) are added as we go, one per workshop.
 
 ## How to use it
 
