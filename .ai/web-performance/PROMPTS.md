@@ -522,8 +522,10 @@ a step - tell me so.
 ```
 
 ## 3f. Stage 100 standalone: fonts
-Paste after workshop 13 (11.08). Needs the chrome-devtools MCP server. Run Stage 90 first
-if you can - whether the LCP element is text or an image decides this whole stage.
+Paste after workshop 13 (11.08). Needs the chrome-devtools MCP server. Install the WebPerf
+Snippets skill (webperf / webperf-loading) first if you have not - the stage uses it for the
+inventory. Run Stage 90 first if you can - whether the LCP element is text or an image
+decides this whole stage.
 ```
 Run .ai/web-performance/audit/100-fonts.md for MY project.
 
@@ -556,14 +558,23 @@ metric matching is the price of that choice, not an extra.
 1. INVENTORY. Call emulate ONCE (mobile 412x765x2.6, Fast 4G, CPU 4x) and never change it.
    Navigate, then performance_start_trace with reload and autoStop. Also curl the page and
    keep the raw server HTML.
-   Collect TWO things with evaluate_script, because the gap between them is the finding:
-   (a) what the browser actually loaded - iterate document.fonts and keep the faces with
-   status "loaded", with family, weight, style, unicodeRange and display; (b) what the page
-   above the fold actually renders in - walk the elements inside the initial viewport that
-   contain text, read the computed font-family, weight and style, and count elements per
-   face. The WebPerf Snippets snippet fonts-preloaded-loaded-and-used-above-the-fold does
-   exactly this cross-reference including preload status and font-display; you may paste it
-   through evaluate_script instead. Say where the numbers came from.
+   Do NOT hand-roll the inventory. If the WebPerf Snippets skill (webperf / webperf-loading,
+   nucliweb) is installed, use it - it ships the snippet locally, version-pinned, and its
+   "Font Loading Optimization" workflow runs the three I want: Fonts-Preloaded-Loaded-and-
+   used-above-the-fold (the audit), Resource-Hints-Validation (preload correctness, flags a
+   font preload without crossorigin) and Find-render-blocking-resources (is the stylesheet
+   carrying the @font-face itself render-blocking). If the skill is not installed, take the
+   snippet from webperf-snippets.nucliweb.net, section Loading, "Fonts Preloaded, Loaded, and
+   Used Above The Fold", and run it through evaluate_script. Only if you can do neither,
+   collect it yourself: (a) iterate document.fonts and keep the faces with status "loaded",
+   with family, weight, style, unicodeRange and display; (b) walk the elements inside the
+   initial viewport that contain text, read the computed font-family, weight and style, and
+   count elements per face. Say which path you used.
+   WARNING about the skill, and it matters: its decision tree says "used above the fold but
+   not preloaded -> add a preload", and its resource-hints check tolerates 5-6 preloads.
+   Applied literally that is exactly the configuration that measures WORSE than preloading
+   nothing. Use the skill for the inventory and the mechanical checks; take the preload
+   decision from step 4 below and tell me where you departed from the tool.
    Cross-reference the trace so every face maps to a real file, transfer size and origin.
    Give me one row per FILE, not per declaration: file | family/weight/style | origin |
    format | transfer | unicode-range | font-display | preloaded? | used above the fold? |
@@ -614,11 +625,22 @@ metric matching is the price of that choice, not an extra.
 
 6. BYTES, in this order and only now: cut faces nothing renders and weights the design does
    not use; compare a variable font against the actual sum of my static files (often smaller,
-   not automatically); check subsetting and unicode-range against MY content - for Polish
-   that is latin + latin-ext and a subset that drops the diacritics is a bug, not an
-   optimisation; WOFF2 or it is a finding. Ask me whether my faces are licensed for
-   modification BEFORE proposing a subset. If an icon font is present, count how many of its
-   glyphs the page actually uses.
+   not automatically); WOFF2 or it is a finding.
+   Then DO THE SUBSET PASS on the heaviest self-hosted face - I want a real file out of this
+   step, not a recommendation. Ask me first whether my faces are licensed for modification.
+   Then: open the source file in Wakamai Fondue (wakamaifondue.com) and tell me what is
+   actually inside - glyph count, character sets, features, axes - and name what can go
+   ("drop Cyrillic and Greek", not "subset it"). Regenerate through Transfonter
+   (transfonter.org): latin + latin-ext for Polish content, WOFF2 only, and the font-display
+   value chosen in step 5; keep the generated CSS, the unicode-range it emits is part of the
+   deliverable. Report BEFORE and AFTER in bytes, per file and for the page type. Then VERIFY
+   THE RENDERING, not the size: swap the file in locally and check the Polish diacritics on
+   real content plus anything else the design leans on (currency, arrows, ligatures, tabular
+   figures) - a subset that renders a tofu box is not a smaller file, it is a broken one, and
+   I want you to say that you checked. Report it as TRANSFER SAVED with the header metrics
+   before and after next to it; on most pages this moves no headline metric and that is the
+   expected result. Do not inflate it into an LCP win.
+   If an icon font is present, count how many of its glyphs the page actually uses.
 
 7. ORIGIN AND CACHE. Self-host unless there is a reason not to: a third-party origin costs
    DNS + TCP + TLS on the first visit before the browser even knows which files it needs, and

@@ -51,7 +51,10 @@ you see in the workshop, compare it against this one and pull in the newer stage
   preloading none. It also forces the trade-off nobody can optimise away - hide the text
   (`block`) or shift it (`swap`) - and makes the project choose one on purpose, with metric
   matching as the price of `swap`. Bytes (weights, subsetting, `unicode-range`, WOFF2,
-  variable fonts) come last, and are reported as transfer saved, not as a metric win.
+  variable fonts) come last, and are reported as transfer saved, not as a metric win - the
+  stage ends with a real regenerated file, not a recommendation. The inventory is delegated
+  to the **WebPerf Snippets** skill (nucliweb) where it is installed, with an explicit note
+  on where this stage overrules its preload advice.
 - `wpt/mobile`, `wpt/desktop` - drop your WebPageTest JSON files here
 
 More stages (CLS, INP...) are added as we go, one per workshop.

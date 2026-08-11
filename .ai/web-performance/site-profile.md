@@ -177,6 +177,8 @@ Filled by Stage 100 (audit/100-fonts.md). Leave <TODO> until run.
 - Variable font compared against the static set (actual file sizes): <TODO / not applicable>
 - Subsetting and unicode-range in use, character coverage vs my content: <TODO>
 - Licence permits modification/subsetting?: <TODO yes / no / free font>
+- Subset pass on the heaviest face (Wakamai Fondue -> Transfonter): <TODO file, what was
+  dropped, BEFORE n KB -> AFTER n KB, rendering verified incl. Polish diacritics: yes/no>
 - Formats served (WOFF2 or a finding): <TODO>
 - Icon font: glyphs available vs glyphs used: <TODO / none>
 
@@ -185,6 +187,8 @@ Filled by Stage 100 (audit/100-fonts.md). Leave <TODO> until run.
 - Cloudflare Fonts in use as a mitigation: <TODO yes / no / not applicable>
 - Cache TTL on font files: <TODO>
 
+- Inventory source: <TODO WebPerf Snippets skill / snippet from the site / hand-rolled>
+- Where I departed from the tool's preload advice, and why: <TODO>
 - Priority verdict: <TODO FIX NOW / FIX LATER / NO ACTION> because <TODO vs LCP/FCP/TTFB>
 - Per-file policy (preload / eager / defer / drop + font-display): <TODO routed by stack>
 - Experiment result (baseline vs preload-critical-only vs preload-all): <TODO SUPPORTED /

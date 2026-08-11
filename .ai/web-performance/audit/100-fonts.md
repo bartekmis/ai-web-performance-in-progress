@@ -9,6 +9,7 @@
 > Input:  site-profile.md > ## Project, ## Page types, ## Render start (Stage 60),
 >         ## Preconnect (Stage 30), ## Cache & CDN (Stage 40), ## Scripts (Stage 80),
 >         ## Media (Stage 90) + the chrome-devtools MCP server + MY SOURCE CODE
+>         (+ the WebPerf Snippets skill if installed - see 100.1)
 > Output: site-profile.md > ## Fonts + findings.md, ending with ONE preload budget, a
 >         per-file policy table that names MY font files, and a measured experiment.
 >         Runs AFTER Stage 60 and AFTER Stage 90 (Stage 90 tells you whether the LCP
@@ -110,13 +111,62 @@ Everything here runs through the chrome-devtools MCP server.
 - Also `curl` the page and keep the raw server HTML. You need it in 100.2 to tell an
   `@font-face` that ships in the document from one that arrives inside a stylesheet.
 
-Two collections, and the gap between them IS the finding:
+**PRIMARY PATH - use the WebPerf Snippets skill if it is installed.** This stage does not
+ask you to re-implement a cross-reference that already exists and is maintained. If the
+`webperf` / `webperf-loading` skill (nucliweb, github.com/nucliweb/webperf-snippets) is
+available, invoke it - it ships the snippet locally as
+`scripts/Fonts-Preloaded-Loaded-and-used-above-the-fold.js`, version-pinned with a checksum,
+so there is no network fetch and no drift. Its "Font Loading Optimization" workflow runs
+three snippets and you want all three:
+- `Fonts-Preloaded-Loaded-and-used-above-the-fold.js` - the font audit below;
+- `Resource-Hints-Validation.js` - checks preload correctness, and flags a font preload
+  without `crossorigin` as an error. This does most of the mechanical work of 100.4;
+- `Find-render-blocking-resources.js` - tells you whether the stylesheet carrying the
+  `@font-face` is itself render-blocking, which feeds 100.2.
 
-**(a) What the browser loaded.** `document.fonts` is authoritative - it reports the faces
-the browser actually instantiated, not what the CSS declares:
+READ 100.4 BEFORE ACTING ON THE SKILL'S RECOMMENDATIONS. Its decision tree says "fonts used
+but not preloaded -> recommend adding preload", and its resource-hints check treats 5-6
+preloads as the acceptable ceiling. Both are reasonable defaults for a general audit and
+both are WRONG for this stage: the skill does not know your preload budget, and this stage
+exists to produce one. Use the skill for the inventory and the mechanical checks; take the
+preload decision from 100.4, not from the skill.
+
+**FALLBACK 1 - if the skill is not installed**, take the snippet from the site:
+
+  "Fonts Preloaded, Loaded, and Used Above The Fold" - section Loading
+  https://webperf-snippets.nucliweb.net/Loading/Fonts-Preloaded-Loaded-and-used-above-the-fold
+
+Fetch its source and run it through `evaluate_script` on the page you are auditing. It
+returns four blocks, and between them they are most of what 100.1 needs:
+
+1. **Preloaded fonts** - filename, type, third-party or not, and whether `crossorigin` is
+   present. Carry the crossorigin column straight into 100.4.
+2. **Loaded fonts** - family, weight, style and the `font-display` value in effect. Carry
+   `font-display` into 100.5.
+3. **Fonts used above the fold** - family, weight, style and the number of elements using
+   each. This is the input to 100.3.
+4. **Potential issues** - preloaded but unused above the fold, used but not preloaded, and
+   missing `crossorigin`.
+
+Treat block 4 as a set of LEADS, not as the verdict. It tells you a face is used but not
+preloaded; it does not know your preload budget, so "used but unpreloaded" is not
+automatically something to fix - on most pages the correct action is to preload none of them
+(see 100.4). Confirm a missing `crossorigin` by finding the duplicate request on the
+waterfall, not by trusting the flag.
+
+**What the snippet does NOT give you**, and what you must still take from the trace and the
+network list - this is where the rest of the stage lives:
+- transfer size and origin per file;
+- `unicode-range` per face;
+- WHEN each request started, which is the whole of 100.2.
+
+**FALLBACK 2 - if you can neither run the skill nor fetch the snippet**, collect the same
+two things yourself.
+`document.fonts` is authoritative for (a): it reports the faces the browser actually
+instantiated, not what the CSS declares.
 
 ```js
-// One row per face the browser actually loaded.
+// (a) One row per face the browser actually loaded.
 [...document.fonts].filter(f => f.status === 'loaded').map(f => ({
   family: f.family, weight: f.weight, style: f.style,
   stretch: f.stretch, unicodeRange: f.unicodeRange,
@@ -124,12 +174,8 @@ the browser actually instantiated, not what the CSS declares:
 }));
 ```
 
-**(b) What the page above the fold actually renders in.** Walk the elements in the initial
-viewport and read their computed `font-family`, then resolve which loaded face each one
-resolves to:
-
 ```js
-// Families genuinely used above the fold, with how many elements use each.
+// (b) Families genuinely used above the fold, with how many elements use each.
 const used = new Map();
 for (const el of document.body.querySelectorAll('*')) {
   const r = el.getBoundingClientRect();
@@ -141,11 +187,9 @@ for (const el of document.body.querySelectorAll('*')) {
 [...used].map(([k, n]) => ({ face: k, elements: n }));
 ```
 
-- **The shortcut worth knowing.** The WebPerf Snippets snippet
-  `fonts-preloaded-loaded-and-used-above-the-fold` does exactly this cross-reference and
-  additionally reports which faces are preloaded and what `font-display` each one has. You
-  can paste it through `evaluate_script` instead of writing the two collections by hand.
-  Record where the numbers came from either way.
+Then read the preload links out of the served HTML yourself.
+
+- Whichever path you used, SAY SO in the report - skill, fetched snippet, or hand-rolled.
 - Cross-reference the network requests from the trace so every loaded face maps to a real
   file with a real transfer size and origin.
 
@@ -225,9 +269,16 @@ Now issue the constraint the rest of the stage lives under.
   it downloads a file the CSS will then not use:
   - `as="font"` and `type="font/woff2"` present;
   - `crossorigin` present (font requests are CORS-mode even from my own origin; without it
-    the file is fetched twice);
+    the file is fetched twice). The snippet in 100.1 already flags this per preload - confirm
+    it by finding the duplicate request on the waterfall before reporting it;
   - the preloaded URL is byte-identical to the URL the `@font-face` will request - watch for
     cache-busting query strings and for a CDN rewriting one of them.
+- **If you ran the skill in 100.1, this is where you overrule it.** Its decision tree
+  recommends adding a preload for every face used above the fold but not preloaded, and its
+  resource-hints check only complains past 5-6 preloads. Applied literally on a page with
+  four faces above the fold, that produces exactly the configuration the workshop measured
+  as SLOWER than preloading nothing. The skill reports a mismatch; the budget decides what
+  to do about it. Record both, and say in the report where you departed from the tool.
 - Say plainly what preload does NOT do: it does not shorten the chain for the OTHER faces,
   it does not change `font-display` behaviour, and it does not make a third-party origin
   local. Moving `@font-face` into the document is worth a few percent; preload is the lever.
@@ -288,6 +339,22 @@ Order: **fewer faces -> subset -> format -> variable font**.
     my faces are licensed for modification BEFORE proposing a subset. Note the distinction:
     generating a subset for web delivery and altering the typeface are not the same act, but
     the licence, not this document, decides.
+  - **THE SUBSET PASS (Do - this stage produces a real file, not a recommendation).** Once
+    the licence gate is clear, actually run it on the heaviest self-hosted face:
+    1. Open the source file in Wakamai Fondue (wakamaifondue.com) and record what is inside:
+       glyph count, character sets, features, axes. Decide from that what can go, and say so
+       explicitly - "drop the Cyrillic and Greek ranges", not "subset it".
+    2. Regenerate through Transfonter (transfonter.org): subset latin + latin-ext for Polish
+       content, WOFF2 only, and the `font-display` value chosen in 100.5. Keep the generated
+       CSS - the `unicode-range` it emits is part of the deliverable.
+    3. Record BEFORE and AFTER in bytes, per file and as a total for the page type.
+    4. **Verify the rendering, not the size.** Swap the file in locally and check the Polish
+       diacritics on real content, plus any character the design depends on (currency,
+       arrows, ligatures, the tabular figures in a price table). A subset that renders a
+       tofu box has not made the file smaller, it has broken it. State that you checked.
+    5. Report this as TRANSFER SAVED, with the header metrics from before and after next to
+       it. On most pages this moves no headline metric and that is the expected result - it
+       saves bandwidth, battery and the user's data plan. Do not inflate it into an LCP win.
 - **Format.** WOFF2 or it is a finding. Anything served as TTF, OTF or WOFF is carrying
   avoidable bytes; TTF in particular is frequently several times the size of the same face as
   WOFF2. There is no meaningful browser left that needs a fallback format.
@@ -405,6 +472,12 @@ Any stack - the order that matters:
 - **Preloading every font.** The headline trap of this stage. Preload is zero-sum; preloading
   all faces widens the initial burst and frequently measures worse than preloading none.
   Measure it (100.9, variant 3) before arguing about it.
+- **Taking the preload advice of a general-purpose audit tool at face value.** The WebPerf
+  Snippets skill, Lighthouse and most audit tooling flag "used above the fold but not
+  preloaded" as an opportunity and tolerate 5-6 preloads. That is a sane default for a tool
+  that cannot know which face decides your LCP - and it is how a page ends up preloading
+  four faces and measuring worse than preloading none. The tool finds the mismatch; 100.4
+  decides what to do with it.
 - **A preload without `crossorigin`.** Font requests are CORS-mode even same-origin. Without
   it the browser fetches the file a second time and the preload has cost you bandwidth for
   nothing. Check the waterfall for the duplicate rather than reading the markup.
