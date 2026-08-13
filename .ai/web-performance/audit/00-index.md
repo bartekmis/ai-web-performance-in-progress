@@ -36,6 +36,7 @@ single stage - each stage in audit/ is self-contained and can be run on its own.
 - 80 - scripts & third party       -> .ai/web-performance/audit/80-scripts-and-third-party.md
 - 90 - images and video            -> .ai/web-performance/audit/90-images-and-video.md
 - 100 - fonts                      -> .ai/web-performance/audit/100-fonts.md
+- 110 - consent / CMP              -> .ai/web-performance/audit/110-consent-cmp.md
 - (more stages added per workshop: CLS, INP...)
 
 ## What each stage produces (the shape changes as you go up the stack)
@@ -65,6 +66,15 @@ single stage - each stage in audit/ is self-contained and can be run on its own.
   than preloading none. And while a font is in flight the page must either hide text or
   shift it - the stage names which cost the project is choosing rather than recommending
   swap by reflex.
+- 110 produces THREE SEPARATE VERDICTS AND A GATE. One component fails in three unrelated
+  ways - it blocks the parser (loading), it gets classified as the LCP element
+  (classification), and its consent click releases a tag cascade before the next paint
+  (scheduling) - and two of the fixes work against each other, because whatever stops the
+  script blocking also makes the banner appear later. A single verdict for "the cookie
+  banner" is the failure mode. This is also the first stage whose output is constrained by
+  something that is not a metric: the consent state must still be correct after the change,
+  and a loading fix that starts writing cookies before consent is withdrawn no matter what
+  it did for Start Render.
 
 ## How to resume
 Check the "## Progress" section in .ai/web-performance/site-profile.md and run the

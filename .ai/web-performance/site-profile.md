@@ -194,6 +194,53 @@ Filled by Stage 100 (audit/100-fonts.md). Leave <TODO> until run.
 - Experiment result (baseline vs preload-critical-only vs preload-all): <TODO SUPPORTED /
   REGRESSION / INCONCLUSIVE + FCP, LCP and CLS per variant>
 
+## Consent / CMP
+Filled by Stage 110 (audit/110-consent-cmp.md). Leave <TODO> until run.
+- Viewport the numbers were measured on: <TODO e.g. 412x765x2.6 mobile, Fast 4G, CPU 4x>
+- Cookies/storage cleared before every run (banner only shows to a first-time visitor): <TODO yes>
+- CMP present / vendor: <TODO name, or none - then the stage stops here>
+- Script origin (first- or third-party) / transfer / loading attribute: <TODO / TODO / TODO>
+- Position in the document and how it arrives (in HTML / tag inside GTM / injected): <TODO>
+- Tag manager present (container id) / consent framework (Consent Mode v2, TCF, none): <TODO / TODO>
+- Two independent entry points (tag manager AND hardcoded script)?: <TODO yes - ordering is now
+  a hand-maintained invariant / no>
+
+### Failure 1 - render start (LOADING)
+- Render-blocking?: <TODO yes / no> - chain and hops before the request: <TODO>
+- Start Render / FCP with the CMP origin BLOCKED vs baseline: <TODO / TODO> (this is the
+  measured ceiling on any loading fix, not an estimate)
+- Verdict: <TODO FIX NOW / FIX LATER / NO ACTION>
+
+### Failure 2 - LCP (CLASSIFICATION)
+- LCP element as a first-time visitor (banner present): <TODO element + time>
+- LCP element without the banner (from Stage 90): <TODO element + time>
+- Is the banner (or a node inside it) the LCP element?: <TODO yes / no / it changed the element>
+- Banner area on screen at this viewport: <TODO>
+- Verdict: <TODO FIX NOW / FIX LATER / NO ACTION>
+
+### Failure 3 - INP (SCHEDULING)
+- Consent-click interaction duration (input delay / processing / presentation): <TODO>
+- What the click starts: <TODO n requests, n KB, n ms main thread>
+- Time from click to banner gone from screen: <TODO>
+- Is the cascade the CMP itself or tags firing on the consent event?: <TODO>
+- Verdict: <TODO FIX NOW / FIX LATER / NO ACTION>
+
+### The consent gate (outranks every performance finding here)
+- Non-essential cookies/storage written BEFORE consent today: <TODO list, or none>
+- Same list after the proposed loading change: <TODO list> - gate <TODO PASSED / FAILED / UNPROVEN>
+- With consent denied: analytics tags stay silent?: <TODO> - anonymised Consent Mode pings
+  still sent?: <TODO yes / no / vendor does not support>
+
+### Decisions
+- Loading policy chosen: <TODO leave synchronous / defer / relocate into the tag manager>
+- Latency paid back after relocation (preconnect / preload to the vendor origin): <TODO>
+- Time-to-banner-visible, before vs after: <TODO / TODO>
+- Off-screen policy applied?: <TODO yes - selector <TODO> / no - banner is not the LCP element>
+- Honesty test (LCP improved AND time-to-banner-visible unchanged?): <TODO PASSED / REGRESSION>
+- Layout shift caused by the banner (routed to the CLS stage): <TODO>
+- Experiment result (baseline / defer / relocated / off-screen): <TODO SUPPORTED / REGRESSION /
+  INCONCLUSIVE + Start Render, LCP with winning element, CLS and time-to-banner-visible per variant>
+
 ## Progress
 - [ ] Stage 10 - profile and baseline
 - [ ] Stage 20 - network: DNS / TLS / HTTP
@@ -205,3 +252,4 @@ Filled by Stage 100 (audit/100-fonts.md). Leave <TODO> until run.
 - [ ] Stage 80 - scripts and third party
 - [ ] Stage 90 - images and video
 - [ ] Stage 100 - fonts
+- [ ] Stage 110 - consent / CMP

@@ -688,6 +688,111 @@ metric matching is the price of that choice, not an extra.
     swap shift I measured belongs in the CLS budget for the CLS stage.
 ```
 
+## 3g. Stage 110 standalone: consent / CMP
+Paste after workshop 14 (13.08). Needs the chrome-devtools MCP server. Run Stage 90 first if
+you can - it tells you what your LCP element is when the banner is NOT in the way, which is
+the comparison this stage is built on. Clear cookies before every run or you will measure a
+page no first-time visitor ever sees.
+```
+Run .ai/web-performance/audit/110-consent-cmp.md for MY project.
+
+Inputs: MY page URL and stack from site-profile.md, what Stage 90 found in ## Media (what is
+the LCP element with consent already stored?), Stage 80 in ## Scripts, Stage 60 in ## Render
+start, Stage 30 in ## Preconnect, the chrome-devtools MCP server, and MY SOURCE CODE - the
+repo you are running in. Show me each step before moving on.
+
+Measure MY page, the URL from site-profile.md. Do not substitute any example, demo or vendor
+documentation page. If the URL, page types or stack are missing from the profile, ask me and
+wait.
+
+READ THIS FIRST, it decides whether the run is any good.
+ONE component, THREE unrelated failures. The consent banner damages three metrics through
+three mechanisms that share no fix: (1) a synchronous script high in <head> blocks the parser
+- a LOADING problem; (2) the banner gets classified as the LCP element - a CLASSIFICATION
+problem, nothing is actually slower; (3) the consent click releases a cascade of tags that
+runs before the next paint - a SCHEDULING problem. Give me three separate verdicts. A single
+verdict for "the cookie banner" means you have not done this stage. Two of the fixes also
+pull against each other: anything that stops the script blocking makes the banner appear
+LATER, which is worse for the user.
+Second, THE CONSENT GATE, and it outranks every performance finding here. The vendor tells
+you to load that script synchronously right after <head> on purpose - it is the driver that
+sets the default denied state before anything else can write a cookie. So: no loading change
+counts as done until you have verified on the MODIFIED page, as a first-time visitor, that no
+non-essential cookie is written before consent. Show me the before and after lists. If you
+cannot verify it, say UNPROVEN - do not say done.
+Third, THE HONESTY TEST. The off-screen technique improves the LCP value by changing when the
+banner becomes visible, not by making anything faster. So measure TIME-TO-BANNER-VISIBLE next
+to LCP every time. If LCP improves and the banner arrives materially later, that is a
+REGRESSION and I want to hear it called one.
+
+0. Call emulate ONCE (mobile 412x765x2.6, Fast 4G, CPU 4x) and never change it. CLEAR COOKIES
+   AND STORAGE BEFORE EVERY SINGLE RUN - the banner only appears to a first-time visitor, and
+   measuring with consent stored is the standard way this whole stage silently produces
+   nothing. Say that you did it. Navigate, then performance_start_trace with reload and
+   autoStop. Also curl the page and keep the raw server HTML.
+
+1. INVENTORY. Vendor, script origin (first- or third-party), transfer, loading attribute
+   (none/async/defer), position in the document, how it arrives (directly in the HTML / as a
+   tag inside a tag manager / injected by a script), tag manager container if any, consent
+   framework (Consent Mode v2 / TCF / none). If BOTH a tag manager and a hardcoded consent
+   script are present, say so - their ordering is now an invariant maintained by hand.
+
+2. FAILURE 1, RENDER START. Is it render-blocking, and how many serialised hops before the
+   request starts? Then stop arguing and measure it: BLOCK the CMP origin, reload, and give me
+   Start Render / FCP with and without. That delta is the ceiling on what any loading fix can
+   win - measured, not estimated.
+
+3. FAILURE 2, LCP. On the first-time-visitor run, what is the LCP element? Compare against
+   what Stage 90 recorded with consent stored. Three outcomes and they go different places:
+   the banner IS the LCP element (failure real, step 6 applies); the LCP element is unchanged
+   and the banner merely overlaps it (failure NOT real - say so and do not propose the
+   off-screen trick); the element changed because the banner pushed content (that is a shift,
+   route it to CLS). Give me the banner area on screen so this is quantified.
+
+4. FAILURE 3, INP. Click the primary consent button with the trace running. Input delay,
+   processing, presentation, total duration. What the click starts: how many requests, how
+   much transfer, how much main-thread work in that frame. And the number that matters to the
+   user: time from click to the banner being GONE. Do not assume this failure still exists -
+   the large vendors shipped scheduling fixes for it. If it is already fast, record NO ACTION
+   and move on. If the cascade is tags firing on a consent event rather than the CMP itself,
+   name which.
+
+5. THE LOADING DECISION plus THE GATE. Three options: leave it synchronous (correct, slowest);
+   add defer (the minimum, partial win); relocate it into the tag manager as a tag on the
+   consent-init event, so the document references the vendor origin nowhere (prefer the
+   vendor's official GTM template over a custom HTML tag). Whichever you propose, RUN THE
+   GATE: list non-essential cookies and storage written before consent, before and after, and
+   confirm that with consent denied the analytics tags stay silent and the anonymised Consent
+   Mode pings still go out. Then price in the cost: relocation makes the banner appear later,
+   so pay it back with a preconnect to the vendor origin, or a preload of the script where the
+   URL is stable.
+
+6. THE OFF-SCREEN POLICY - only if step 3 said the banner IS the LCP element. Render it
+   outside the viewport from the first frame (transform: translateY(110vh)) and bring it in
+   after the page has painted. Read the container selector from the rendered DOM on MY page -
+   the classes differ per vendor and change between versions, so do not copy one from
+   anywhere. transform and opacity only. Never display:none or visibility:hidden - a consent
+   dialog a keyboard or screen-reader user cannot reach is a worse defect than the metric it
+   fixed, so verify it is still reachable. Then run the honesty test: LCP before/after, LCP
+   element before/after, and time-to-banner-visible before/after.
+
+7. THREE VERDICTS, then STOP and show me. One per failure, each FIX NOW / FIX LATER / NO
+   ACTION, plus the gate result, plus how all this compares to what Stages 60, 80 and 90
+   found. Do not start the experiment until I say so.
+
+8. EXPERIMENT, only on a FIX NOW. Local HTML variants exactly as in Stage 60.5 (download the
+   page, inject <base href>, one edit per variant, plus an untouched baseline; initScript does
+   not survive the trace reload). Variants: baseline / defer / relocated-to-tag-manager with
+   preconnect / off-screen CSS (that last one only if the banner is the LCP element). 3 rounds
+   rotated, never in blocks, discard the warm-up, compare medians against the larger spread,
+   AND CLEAR COOKIES BETWEEN EVERY RUN. For every variant record Start Render, LCP and WHICH
+   ELEMENT WON IT, CLS, and time-to-banner-visible. Verdicts SUPPORTED / REGRESSION /
+   INCONCLUSIVE.
+
+Write results to site-profile.md > ## Consent / CMP and findings.md, tick Stage 110 in
+## Progress, and end with the STOP line from the stage file.
+```
+
 ## 4. Extend: new stage (builder prompt)
 ```
 We're creating a new audit stage as a SEPARATE file in .ai/web-performance/audit/.
