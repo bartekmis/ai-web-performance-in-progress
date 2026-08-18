@@ -241,6 +241,47 @@ Filled by Stage 110 (audit/110-consent-cmp.md). Leave <TODO> until run.
 - Experiment result (baseline / defer / relocated / off-screen): <TODO SUPPORTED / REGRESSION /
   INCONCLUSIVE + Start Render, LCP with winning element, CLS and time-to-banner-visible per variant>
 
+## INP / interactions
+Filled by Stage 120 (audit/120-inp-interactions.md). Leave <TODO> until run.
+- Viewport and throttling the lab numbers were measured on: <TODO e.g. 412x765x2.6 mobile, Fast 4G, CPU 4x>
+- Is the CPU throttling representative of the device class RUM reports?: <TODO>
+
+### The target (chosen from the field, never from the lab)
+- Source of the target: <TODO RUM tool name / UNCONFIRMED IN THE FIELD - no RUM installed>
+- Page type and URL: <TODO>
+- Element (selector or label) and interaction type (pointer / keyboard): <TODO>
+- How often users hit it: <TODO share of visitors, or unknown>
+- When in the visit it happens (early, inside the load window, or later): <TODO>
+- Why this one and not the others: <TODO frequency vs severity>
+
+### Numbers
+- Field INP (p75) and worst observed interaction: <TODO / TODO>
+- Field subparts - input delay / processing time / presentation delay: <TODO / TODO / TODO>
+- Attributed script domain reported by RUM: <TODO my domain / vendor / none>
+- Lab reproduction, total duration: <TODO>
+- Lab subparts - input delay / processing / presentation: <TODO / TODO / TODO>
+- Did the lab reproduce the field result?: <TODO yes / no - and what state was missing>
+
+### Attribution and route
+- Whose code runs in that frame: <TODO my bundle / framework / tag manager / other vendor>
+- Source location from the LOCAL run (file and line, not a bundle offset): <TODO>
+- Dominant subpart: <TODO input delay / processing time / presentation delay>
+- Owner implied by the subpart: <TODO this stage / Stage 60 or 80 (loading) / Stage 70 (recalc)>
+
+### Decision
+- Any work that should simply be deleted?: <TODO what, or none - this is the only fix here that
+  genuinely reduces work>
+- Named visual change that must land first: <TODO>
+- Scheduling mechanism: <TODO setTimeout / scheduler.yield with a yieldToMain fallback / web
+  worker / optimistic UI / none needed>
+- What is now scheduled after the paint: <TODO>
+- If a tag cascade: fixed in the container or in code?: <TODO> - events verified to still
+  arrive (MPA and SPA)?: <TODO>
+- Experiment result: <TODO SUPPORTED IN LAB / REGRESSION / INCONCLUSIVE> - medians and spread:
+  <TODO>
+- Time from click to visual change, before vs after: <TODO / TODO>
+- Field confirmation due (re-read RUM after the change is live): <TODO date> - result: <TODO>
+
 ## Progress
 - [ ] Stage 10 - profile and baseline
 - [ ] Stage 20 - network: DNS / TLS / HTTP
@@ -253,3 +294,4 @@ Filled by Stage 110 (audit/110-consent-cmp.md). Leave <TODO> until run.
 - [ ] Stage 90 - images and video
 - [ ] Stage 100 - fonts
 - [ ] Stage 110 - consent / CMP
+- [ ] Stage 120 - INP / interactions

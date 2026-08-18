@@ -37,7 +37,8 @@ single stage - each stage in audit/ is self-contained and can be run on its own.
 - 90 - images and video            -> .ai/web-performance/audit/90-images-and-video.md
 - 100 - fonts                      -> .ai/web-performance/audit/100-fonts.md
 - 110 - consent / CMP              -> .ai/web-performance/audit/110-consent-cmp.md
-- (more stages added per workshop: CLS, INP...)
+- 120 - INP / interactions         -> .ai/web-performance/audit/120-inp-interactions.md
+- (more stages added per workshop: CLS...)
 
 ## What each stage produces (the shape changes as you go up the stack)
 - 10-40 read a VALUE: the answer exists and can be measured directly.
@@ -75,6 +76,19 @@ single stage - each stage in audit/ is self-contained and can be run on its own.
   something that is not a metric: the consent state must still be correct after the change,
   and a loading fix that starts writing cookies before consent is withdrawn no matter what
   it did for Start Render.
+
+- 120 produces A TARGET CHOSEN FROM THE FIELD, A ROUTE AND A SCHEDULING DECISION. Every stage
+  before this one measured a PAGE, and the page told you what was wrong. This one measures an
+  INTERACTION, and a page has hundreds of them while real users only ever hit a handful - so the
+  lab cannot choose the target and RUM has to. Driving a browser to click everything is not a
+  substitute: it costs a fortune, and it still measures one device, mine. The diagnosis is then
+  the SUBPART, not the total, and it decides who owns the problem: input delay is a loading
+  problem (Stages 60/80), presentation delay is a recalculation problem (Stage 70), and only
+  processing time belongs to this stage. The fix that follows does not remove work - INP ends at
+  the next paint, so it lets a frame through and finishes the rest afterwards. The only fix here
+  that genuinely reduces work is deleting work nobody needed. And because a lab click is a
+  reproduction rather than the metric, the stage ends SUPPORTED IN LAB, with a date to re-read
+  the field.
 
 ## How to resume
 Check the "## Progress" section in .ai/web-performance/site-profile.md and run the

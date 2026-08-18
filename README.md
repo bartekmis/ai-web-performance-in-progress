@@ -55,9 +55,21 @@ you see in the workshop, compare it against this one and pull in the newer stage
   stage ends with a real regenerated file, not a recommendation. The inventory is delegated
   to the **WebPerf Snippets** skill (nucliweb) where it is installed, with an explicit note
   on where this stage overrules its preload advice.
+- `audit/120-inp-interactions.md` - stage 12: INP, and the first stage whose TARGET cannot be
+  chosen in the lab. A page offers dozens of interactions and real users only ever hit a handful,
+  so the element under audit comes from **RUM** and is only then reproduced in the browser -
+  driving an agent to click everything costs a fortune and still measures one device, yours. The
+  diagnosis is the **subpart**, not the total, and it decides who owns the problem: input delay is
+  a loading problem (Stages 60/80), presentation delay is a recalculation problem (Stage 70), and
+  only processing time belongs here. The fix then REORDERS work rather than removing it, because
+  INP ends at the next paint and not at the end of your JavaScript - the visual change lands
+  first and the rest runs after the frame, via `setTimeout` or `scheduler.yield` (not the same
+  mechanism, and the second one needs a fallback). The only fix in the stage that genuinely
+  reduces work is deleting work nobody needed. Ends SUPPORTED IN LAB with a date to re-read the
+  field, because a lab click is a reproduction, not the metric.
 - `wpt/mobile`, `wpt/desktop` - drop your WebPageTest JSON files here
 
-More stages (CLS, INP...) are added as we go, one per workshop.
+More stages (CLS...) are added as we go, one per workshop.
 
 ## How to use it
 

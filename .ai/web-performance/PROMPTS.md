@@ -793,6 +793,110 @@ Write results to site-profile.md > ## Consent / CMP and findings.md, tick Stage 
 ## Progress, and end with the STOP line from the stage file.
 ```
 
+## 3h. Stage 120 standalone: INP / interactions
+Paste after workshop 15 (18.08). Needs a RUM tool with INP attribution, the chrome-devtools MCP
+server, and - for the source mapping - the project running locally. Run Stage 80 first (it names
+the scripts) and Stage 70 if you can (it owns recalculation cost, which is where a
+presentation-delay problem goes). Without RUM you can still run it, but the target is a guess
+and the stage says so in every line of the output.
+```
+Run .ai/web-performance/audit/120-inp-interactions.md for MY project.
+
+Inputs: MY page URL and stack from site-profile.md, my RUM tool, what Stage 80 found in
+## Scripts, Stage 70 in ## DOM size, Stage 110 in ## Consent / CMP, the chrome-devtools MCP
+server, and MY SOURCE CODE - the repo you are running in. Show me each step before moving on.
+
+Measure MY page and an element MY users actually click. Do not substitute any example or demo.
+If the URL, page types or stack are missing from the profile, ask me and wait.
+
+READ THIS FIRST, it decides whether the run is any good.
+THE TARGET COMES FROM THE FIELD, NOT FROM THE LAB. INP is the duration of ONE interaction, and
+my page offers dozens of them while real users only ever hit a handful. So you start in RUM:
+which page, which element, which subpart dominates, how often it is hit, and when in the visit.
+Only then do you reproduce it in the browser. Do NOT drive the browser to click every element
+looking for the slow one - it burns tokens and time, and it still measures one device and one
+network, mine, which is not the question. If I have no RUM, say so, agree with me on at most
+three candidate elements, and mark the whole finding UNCONFIRMED IN THE FIELD.
+Second, THE SUBPART IS THE DIAGNOSIS, the total is a symptom, and it decides whether this stage
+owns the problem at all. Input delay dominating means the main thread was busy when the click
+landed - that is a LOADING problem and belongs to Stages 60 and 80, and nothing in the handler
+will fix it. Presentation delay dominating means the frame itself is expensive - that is
+recalculation and layout, Stage 70. Only processing time belongs here. Tell me which one it is
+before you propose anything.
+Third, INP ENDS AT THE NEXT PAINT, not at the end of my JavaScript. The standard fix therefore
+REORDERS work, it does not remove it. Do not report "we removed 400 ms of processing" unless
+work was genuinely deleted. Say what now lands before the frame and what runs after it.
+
+0. Call emulate ONCE (mobile 412x765x2.6, Fast 4G, CPU 4x) and never change it. Without CPU
+   throttling almost anything passes on a laptop and this stage will clear a page that is broken
+   on a mid-range phone. State the emulation next to every number.
+
+1. TARGET, FROM RUM. Give me: the worst page type, its INP (p75 and the worst observed
+   interaction), the subpart breakdown, the element selector or label, the interaction type
+   (pointer or keyboard - keyboard on inputs is routinely worse and routinely forgotten), how
+   often users hit it, when in the visit it happens, and the attributed script domain if the
+   tool reports one. If two candidates are close, ask me which the business cares about -
+   frequency beats severity.
+
+2. REPRODUCE IT. Navigate, performance_start_trace with reload, let the page settle, perform
+   THAT ONE interaction, stop. Reproduce the user's timing too: if RUM says it happens ten
+   seconds in, do not click it 200 ms after load. Then go to the interactions track, find the
+   pointer marker, narrow to it, and read input delay, processing duration, presentation delay
+   and the total. If the lab number does not resemble the field number, STOP and tell me -
+   usually it is the device class or some state I have and you do not (a full cart, a long list,
+   logged in).
+
+3. ATTRIBUTE IT. In the main track under the interaction, whose code is running: my bundle, the
+   framework, a tag manager (gtm.js), another vendor? Use debug with AI / Find Improvements - it
+   is fast and useful - but treat what it says as a HYPOTHESIS and confirm it in the trace. Then,
+   because the public site is minified and neither of us can map a bundle offset to my repo, run
+   the project LOCALLY from source, reproduce the same interaction, and give me the real file and
+   line. If I have a RUM MCP server connected, you can also just ask it for the slowest
+   interaction with script attribution from inside my repo folder.
+
+4. ROUTE BY SUBPART, and say it plainly. Input delay dominant -> loading problem, route to
+   Stages 60/80, the button's code is not at fault. Presentation delay dominant -> recalculation
+   and layout, route to Stage 70, and check the animation is limited to transform and opacity.
+   Processing time dominant -> continue here. Total under 200 ms and nothing dominant -> NO
+   ACTION with the numbers attached, which is a legitimate and common result on a project that
+   already did Stages 60-110.
+
+5. IS ANY OF IT NEEDED? Before scheduling work more cleverly, look at what the handler actually
+   does: a computation whose result is never read, measurement of elements nobody animates, a
+   loop sized by a forgotten constant. Deleting that is the ONLY fix here that genuinely reduces
+   work. Ask me before removing anything.
+
+6. THE SCHEDULING DECISION. Name the visual change the user must see first - spinner, state
+   change, opened panel, navigation - and put it first. Then yield: a promise around setTimeout
+   works everywhere but sends the continuation to the BACK of the queue; scheduler.yield keeps
+   its priority after user input but is not universally supported, so ship it behind a feature
+   check with a setTimeout fallback. Do not present the two as the same fix. Where the handler
+   waits on a network write, consider showing the result optimistically and reconciling after.
+   Where the cost is a genuinely heavy pure computation, a web worker is the right home - it has
+   no DOM access, so anything touching the page comes back as a message. Where the cost is a tag
+   cascade, the visual change goes first and the dataLayer push after it - then VERIFY the events
+   still arrive, on a normal navigation and on an SPA route change.
+
+7. VERDICT, then STOP and show me. Target and how it was chosen, field and lab numbers with
+   subparts, the dominant subpart and its route, the attribution with file and line, the
+   decision, and how this compares to what Stages 60, 70, 80 and 110 already found. Do not start
+   the experiment until I say so.
+
+8. EXPERIMENT, only on a FIX NOW. Same emulation. One change per variant, plus an untouched
+   baseline; DevTools local overrides on the HTML document are fine for testing a snippet before
+   it goes in the repo - say when a number came from an override. Repeat the interaction at
+   least 5 times per variant, rotated between variants and never in blocks, discarding the first
+   run after each load: interaction timings are noisier than load timings. Compare medians
+   against the spread and call anything smaller INCONCLUSIVE. For every variant record the total,
+   all three subparts, and TIME FROM CLICK TO THE VISUAL CHANGE ON SCREEN - a variant that
+   improves the metric and delays what the user sees is a REGRESSION. Verdict is SUPPORTED IN
+   LAB, not "fixed": a lab click is a reproduction. Set a date to re-read RUM and confirm the
+   change reached real users.
+
+Write results to site-profile.md > ## INP / interactions and findings.md, tick Stage 120 in
+## Progress, and end with the STOP line from the stage file.
+```
+
 ## 4. Extend: new stage (builder prompt)
 ```
 We're creating a new audit stage as a SEPARATE file in .ai/web-performance/audit/.
