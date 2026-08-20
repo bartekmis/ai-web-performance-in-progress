@@ -38,6 +38,8 @@ single stage - each stage in audit/ is self-contained and can be run on its own.
 - 100 - fonts                      -> .ai/web-performance/audit/100-fonts.md
 - 110 - consent / CMP              -> .ai/web-performance/audit/110-consent-cmp.md
 - 120 - INP / interactions         -> .ai/web-performance/audit/120-inp-interactions.md
+- 130 - JS runtime after load      -> .ai/web-performance/audit/130-js-runtime.md
+- 140 - navigation and bfcache     -> .ai/web-performance/audit/140-navigation-bfcache.md
 - (more stages added per workshop: CLS...)
 
 ## What each stage produces (the shape changes as you go up the stack)
@@ -89,6 +91,28 @@ single stage - each stage in audit/ is self-contained and can be run on its own.
   that genuinely reduces work is deleting work nobody needed. And because a lab click is a
   reproduction rather than the metric, the stage ends SUPPORTED IN LAB, with a date to re-read
   the field.
+
+- 130 produces A COST AFTER DOCUMENT COMPLETE, AN OWNER PER CHUNK AND A DEFERRAL DECISION.
+  Every stage before this one asked what delays something the user is waiting for. This one
+  starts where the page already looks finished and the main thread is still busy - work nobody
+  is waiting for, which is why nobody measures it. The trap here is not measurement but
+  inference: a component that APPEARS on scroll is not a component whose CODE runs on scroll,
+  and a library that arrived in a shared vendor chunk executed at startup no matter how lazily
+  its section fades in. So the stage reads the TRIGGER from source and confirms it in the trace
+  rather than guessing it from where the component sits on the page. It also counts the bill
+  properly: bytes, parse and compile, execution, memory - four costs, of which the quoted
+  transfer size is the cheapest. Deleting beats deferring the code, deferring the code beats
+  deferring the render, and `content-visibility` belongs in the last of those groups, not the
+  first - it skips layout and paint, not JavaScript.
+- 140 produces A POLICY SIZED BY FIELD DATA. It is the first stage that is not about one page
+  load but about the visit: the page the user comes back to, and the page they are about to
+  open. Both halves are decided by published field data (navigation types), and one of them is
+  free - back/forward cache is not built, it is merely not broken, so the finding is which
+  blocker is breaking it. Its second half is a budget rather than a switch, because prefetch and
+  prerender move origin work earlier without removing it, and a default that speculates every
+  visible link turns one visit into dozens of requests. The stage also owns a reporting failure
+  that looks like a performance win: a restored page fires no page view, so fixing bfcache
+  without a `pageshow` path shows up as a drop in traffic.
 
 ## How to resume
 Check the "## Progress" section in .ai/web-performance/site-profile.md and run the

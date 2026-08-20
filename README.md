@@ -67,6 +67,28 @@ you see in the workshop, compare it against this one and pull in the newer stage
   mechanism, and the second one needs a fallback). The only fix in the stage that genuinely
   reduces work is deleting work nobody needed. Ends SUPPORTED IN LAB with a date to re-read the
   field, because a lab click is a reproduction, not the metric.
+- `audit/130-js-runtime.md` - stage 13: what still runs when the page ALREADY LOOKS READY. Every
+  stage before it asked what delays something the user is waiting for; this one starts after
+  Document Complete, where the main thread is still busy and nobody is waiting - which is exactly
+  why nobody measures it. Its central distinction is that **a component that appears on scroll is
+  not a component whose code runs on scroll**: a library sitting in a shared vendor chunk executed
+  at startup no matter how lazily its section fades in, and the cost is smeared across the load
+  rather than sitting in one obvious task. So the stage reads the TRIGGER from source (module
+  scope, a `DOMContentLoaded` handler, an observer, a framework directive, hydration, or something
+  repeating) and confirms it in the trace. It counts the bill in four parts - bytes, parse and
+  compile, execution, memory - and orders the fixes: delete, then defer the CODE, then defer the
+  work, then defer the RENDERING (`content-visibility` lives in that last group, because it skips
+  layout and paint, not JavaScript). Covers hydration cost, re-renders and what a memoising
+  compiler does and does not buy.
+- `audit/140-navigation-bfcache.md` - stage 14: the first stage that is not about one page load
+  but about the VISIT. Both halves are sized by published field data (navigation types), and one
+  of them is free: **back/forward cache is not built, it is merely not broken**, so the finding is
+  which blocker breaks it and whether it is yours or a vendor's. It also owns a reporting failure
+  that looks like a performance win - a restored page fires no page view, so fixing bfcache
+  without a `pageshow` path reads as a drop in traffic and gets reverted. The second half is a
+  BUDGET rather than a switch: framework link prefetching and Speculation Rules move origin work
+  earlier without removing it, and a default that speculates every visible link turns one visit
+  into dozens of requests.
 - `wpt/mobile`, `wpt/desktop` - drop your WebPageTest JSON files here
 
 More stages (CLS...) are added as we go, one per workshop.

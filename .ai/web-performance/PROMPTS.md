@@ -897,6 +897,161 @@ Write results to site-profile.md > ## INP / interactions and findings.md, tick S
 ## Progress, and end with the STOP line from the stage file.
 ```
 
+## 3i. Stage 130 standalone: JS runtime after load
+Paste after workshop 16 (20.08). Needs the chrome-devtools MCP server, a WebPageTest run of the
+same page, and - for the source mapping - the project running locally. Run Stage 80 first (it
+names the scripts) and Stage 70 if you can (it owns recalculation cost). This is the stage that
+looks at the period nobody measures: after Document Complete, with nobody waiting.
+```
+Run .ai/web-performance/audit/130-js-runtime.md for MY project.
+
+Inputs: MY page URL and stack from site-profile.md, what Stage 80 found in ## Scripts, Stage 70
+in ## DOM size, Stage 120 in ## INP / interactions, the chrome-devtools MCP server, and MY
+SOURCE CODE - the repo you are running in. Show me each step before moving on.
+
+Measure MY page. Do not substitute any example or demo. If the URL, page types or stack are
+missing from the profile, ask me and wait.
+
+READ THIS FIRST, it decides whether the run is any good.
+A COMPONENT THAT APPEARS ON SCROLL IS NOT A COMPONENT WHOSE CODE RUNS ON SCROLL. A section can
+fade in on an observer while the library behind it was downloaded, parsed and executed at
+startup inside a shared vendor chunk. It looks lazy and it is not, and the cost is smeared
+across the load instead of sitting in one obvious task - which is why it hides. Read the TRIGGER
+in my source and confirm it in the trace. Never infer it from where the component sits on the
+page.
+Second, BYTES ARE ONE QUARTER OF THE BILL: download, parse and compile, execution on the main
+thread, memory and GC. A finding that quotes only transfer size has measured the cheapest part.
+Third, THE ORDER IS DELETE, THEN DEFER THE CODE, THEN DEFER THE WORK, THEN DEFER THE RENDERING.
+content-visibility belongs in the last group - it skips layout and paint, not JavaScript. Do not
+sell it as a fix for a heavy script.
+
+0. Call emulate ONCE (mobile 412x765x2.6, Fast 4G, CPU 4x) and never change it. State it next to
+   every number.
+
+1. FIND THE TAIL. navigate_page, performance_start_trace with reload, and LET IT RUN several
+   seconds past the point where the page looks finished. Do not scroll and do not click - the
+   whole stage is about the period when nobody is waiting. Give me: Total Blocking Time, the
+   individual long tasks that make it up, and how long the main thread stayed busy after
+   Document Complete. Cross-check the JS execution bands against Document Complete on a
+   WebPageTest run of the same page. If the thread goes quiet within a second and TBT is small,
+   say NO ACTION with the numbers and stop.
+
+2. ATTRIBUTE IT. Name the file behind each long task. Then BLOCK that request in the Network
+   panel, reload, and tell me what visually breaks - that is the cheapest way to turn a hashed
+   chunk into a feature I can name. It is a diagnostic, not a fix. Say what else travels in that
+   chunk: unrelated libraries sharing one vendor file is its own finding, and its fix is build
+   config, not code. Then run the project LOCALLY from source and give me the real file, because
+   neither of us can map a bundle offset to my repo. debug with AI is a fast hypothesis, not a
+   verdict - and its DOM and style recommendations belong to Stage 70, so route them.
+
+3. READ THE TRIGGER for each candidate: module scope, a DOMContentLoaded handler, an
+   intersection observer, a framework directive, hydration, or something repeating (scroll
+   handler, rAF loop, timer, an observer that never disconnects). For an observer, tell me
+   whether it triggers the IMPORT or only the RENDER. For a framework directive, confirm in the
+   BUILT output that the code really landed in its own chunk. Then ask the question the trigger
+   cannot answer: does the user ever see this component on this page?
+
+4. HYDRATION AND RE-RENDERS, framework stacks only - say so and skip if it does not apply.
+   Hydration cost follows the size of the component tree, not what is on screen; tell me what
+   could be excluded from it. For re-renders, use a highlighter (React Scan injects fine through
+   DevTools local overrides, in head before other scripts, no install needed) and record a
+   throttled trace while doing something realistic, so highlights become main-thread time. Then
+   say which of those re-renders HAD to happen. A deterministic repo scan is worth a run for the
+   inventory; hand the shortlist to an agent for fixes. If a memoising compiler is available,
+   treat it as a lever to measure, not a rescue - the win scales with how bad the code was.
+
+5. DECIDE, per candidate: delete (the only option that removes all four costs), defer the code
+   into its own chunk imported when needed, defer the expensive initialisation while keeping the
+   module, defer the RENDERING with content-visibility and contain-intrinsic-size, or stop the
+   repetition. Say which one and what will happen instead of what happens today.
+
+6. VERDICT, then STOP and show me: the tail, the owners, the triggers, an explicit
+   lazy-appearance-without-lazy-code line, the decision per candidate, and how this compares to
+   what Stages 60, 70, 80 and 120 already found. Do not edit until I say so.
+
+7. EXPERIMENT, only on a FIX NOW. Same emulation, one change per variant, baseline first, at
+   least 5 runs per variant, medians with the spread, anything smaller INCONCLUSIVE. Record all
+   four costs before and after - bytes, parse and compile, execution, and where the last long
+   task now ends relative to Document Complete - plus TBT. Check whether a load-time cost just
+   became an interaction-time cost: deferred code executes when the user arrives, and if that is
+   on a click, Stage 120 now owns a new problem. Verify the feature still works on a mid-range
+   device and a slow connection.
+
+Write results to site-profile.md > ## JS runtime and findings.md, tick Stage 130 in ## Progress,
+and end with the STOP line from the stage file.
+```
+
+## 3j. Stage 140 standalone: navigation and bfcache
+Paste after workshop 16 (20.08). Needs CrUX data for the origin (any tool exposing navigation
+types) and a browser. Cheap to run and frequently ends in NO ACTION - which is the point: the
+field data tells you within minutes whether any of it is worth an afternoon.
+```
+Run .ai/web-performance/audit/140-navigation-bfcache.md for MY project.
+
+Inputs: MY origin and page types from site-profile.md, what Stage 40 found in ## Cache & CDN,
+Stage 110 in ## Consent / CMP, my RUM tool if I have one, and a browser (chrome-devtools MCP is
+enough). Show me each step before moving on.
+
+READ THIS FIRST.
+SIZE IT FROM THE FIELD BEFORE DOING ANYTHING. Navigation types are published for any origin with
+enough traffic. Read the share of back/forward navigations against the share that were served
+from back/forward cache - a large first number with a near-zero second one is the finding, and a
+back/forward share of 1% means this stage should end in NO ACTION. Split by device where you
+can: back and forward is mostly mobile behaviour, so my own desktop habits are a bad proxy.
+Second, BFCACHE IS NOT BUILT, IT IS MERELY NOT BROKEN. Never propose "implementing" it. Ask the
+browser whether it works and what is blocking it.
+Third, PREFETCH AND PRERENDER MOVE ORIGIN WORK EARLIER, THEY DO NOT REMOVE IT. The output here
+is a budget, not a switch.
+
+1. FIELD SIZING. Give me the navigation type shares for my origin: navigate, navigate cache,
+   back/forward, back/forward cache, reload, restore, prerender - and the gap between the two
+   back/forward numbers. No CrUX data for the origin? Say so, fall back to RUM, and mark the
+   sizing UNCONFIRMED IN THE FIELD.
+
+2. BFCACHE. Open the page, navigate away, come back, and read DevTools > Application >
+   Back/forward cache with its Test action. Record verbatim whether it was served and every
+   blocker listed. Do this on EACH page type, not just the homepage - blockers are usually
+   per-template. Do not reason from Cache-Control headers: the rules changed and the browser is
+   authoritative. Attribute each blocker to my code or to a named vendor script using the
+   Stage 80 inventory; an unload handler inside a third-party tag is the classic case, and the
+   fix is a conversation, not a commit.
+
+3. ANALYTICS ON RESTORE. A restored page does not load, so nothing re-runs and a page view that
+   fires once per load will not fire at all. Test it: navigate away, come back, watch the
+   network. Tell me whether I undercount, double count, or am correct, and whether a pageshow
+   path exists. This matters because fixing bfcache without it looks like a drop in traffic and
+   somebody will revert a correct change.
+
+4. PREFETCH TODAY. Establish what my framework prefetches by DEFAULT and prove it: open the
+   page, open the navigation menu, and count the requests that fire before any click. Cost it
+   against how many pages a visitor actually opens, remembering that a prefetched server-rendered
+   response is real origin work. Then propose a policy - leave it alone, prefetch on hover, or
+   prefetch only the routes analytics and heatmaps show people actually take.
+
+5. SPECULATION RULES, document navigations only - if my site navigates client-side inside a
+   framework app, say so and skip this. Check whether rules are already present (some platforms
+   ship them by default, so I may be speculating on a policy nobody chose) and whether that
+   policy is defensible. Distinguish prefetch (fetches the document) from prerender (loads AND
+   renders the target page, scripts included) - they do not cost the same. Recommend an
+   eagerness and justify the budget; moderate prerender on a handful of key routes buys the most
+   for the least, because a hover is a signal of intent. Then verify that a prerendered page
+   that is never visited does not count as a visit and writes nothing before consent.
+
+6. VERDICT, then STOP and show me: field sizing, bfcache verdict per page type with attributed
+   blockers, the analytics result, what fires before a click today, and the policy you propose
+   with the reason for that budget. NO ACTION is a legitimate outcome here - say it if the field
+   data says it.
+
+7. EXPERIMENT, only on a FIX NOW. Remove or route the blocker, re-run the Application test, and
+   confirm the restore on a throttled connection. Count requests before and after for the
+   prefetch policy, and measure click to painted target on speculated routes. Set a date to
+   re-read the navigation types in the field - until then the bfcache result is SUPPORTED IN
+   LAB.
+
+Write results to site-profile.md > ## Navigation and findings.md, tick Stage 140 in ## Progress,
+and end with the STOP line from the stage file.
+```
+
 ## 4. Extend: new stage (builder prompt)
 ```
 We're creating a new audit stage as a SEPARATE file in .ai/web-performance/audit/.

@@ -282,6 +282,74 @@ Filled by Stage 120 (audit/120-inp-interactions.md). Leave <TODO> until run.
 - Time from click to visual change, before vs after: <TODO / TODO>
 - Field confirmation due (re-read RUM after the change is live): <TODO date> - result: <TODO>
 
+## JS runtime
+Filled by Stage 130 (audit/130-js-runtime.md). Leave <TODO> until run.
+- Page type these numbers came from: <TODO>
+- Viewport and throttling: <TODO e.g. 412x765x2.6 mobile, Fast 4G, CPU 4x>
+
+### The tail (measured with no scrolling and no clicking)
+- Total Blocking Time: <TODO>
+- Long tasks in the tail (duration and file): <TODO>
+- How long the main thread stayed busy after Document Complete: <TODO>
+- Last long task relative to LCP: <TODO>
+
+### Owners
+- Chunk / file: <TODO> - what it contains: <TODO libraries>
+- What visually broke when the request was blocked: <TODO>
+- Source location from the LOCAL run (not a bundle offset): <TODO>
+- Unrelated libraries sharing one chunk?: <TODO what, or no>
+
+### Triggers
+- Trigger per component: <TODO module scope / DOMContentLoaded / observer / framework directive
+  / hydration / repeating (scroll, rAF, timer)>
+- Lazy appearance WITHOUT lazy code (appears on scroll, executes at startup): <TODO which, or
+  none - and how it was proved>
+- Does the user see this component on this page type?: <TODO share of visits that scroll to it>
+
+### Hydration and re-renders (framework stacks; note if skipped and why)
+- Hydration cost measured: <TODO / skipped - not a component-hydrated stack>
+- What could be excluded from hydration (islands, suspense, static sections): <TODO>
+- Re-renders observed with a highlighter, and which of them had to happen: <TODO>
+- Deterministic repo scan run?: <TODO tool and headline result>
+- Memoising compiler in play?: <TODO yes/no> - measured effect: <TODO>
+
+### Decision
+- Per candidate: <TODO delete / defer the code / defer the work / defer the rendering
+  (content-visibility - rendering only, not JS) / stop the repetition / NO ACTION>
+- Build-config change needed (chunk splitting)?: <TODO>
+- Experiment result: <TODO IMPROVED / REGRESSION / INCONCLUSIVE> - medians and spread: <TODO>
+- Four costs before vs after (bytes / parse+compile / execute / last long task): <TODO>
+- Did a load-time cost move into an interaction-time cost?: <TODO checked how>
+
+## Navigation
+Filled by Stage 140 (audit/140-navigation-bfcache.md). Leave <TODO> until run.
+
+### Field sizing (navigation types)
+- Source: <TODO CrUX via which tool / UNCONFIRMED IN THE FIELD - no field data>
+- navigate / navigate cache / reload: <TODO / TODO / TODO>
+- back-forward: <TODO> vs back-forward cache: <TODO> - the gap: <TODO>
+- prerender / restore: <TODO / TODO>
+- Split by device (back/forward is mostly mobile): <TODO>
+
+### bfcache
+- Served from bfcache?: <TODO yes / no> - per page type: <TODO>
+- Blockers named by the browser: <TODO verbatim>
+- Attributed to: <TODO my code (file) / vendor script (which)>
+
+### Analytics on restore
+- What happens on a back/forward restore today: <TODO no event / duplicated event / correct>
+- pageshow path present?: <TODO>
+- How it was tested: <TODO>
+
+### Policy
+- What the project prefetches by default, and how many requests fire before any click: <TODO>
+- Prefetch policy chosen: <TODO leave as is / on hover / key routes only>
+- Speculation Rules present already?: <TODO none / platform default / custom>
+- Policy chosen: <TODO prefetch or prerender, which routes, eagerness> - or <TODO none - SPA
+  routing / NO ACTION>
+- Consent and analytics verified for prerendered pages: <TODO>
+- Field confirmation due: <TODO date> - result: <TODO>
+
 ## Progress
 - [ ] Stage 10 - profile and baseline
 - [ ] Stage 20 - network: DNS / TLS / HTTP
@@ -295,3 +363,5 @@ Filled by Stage 120 (audit/120-inp-interactions.md). Leave <TODO> until run.
 - [ ] Stage 100 - fonts
 - [ ] Stage 110 - consent / CMP
 - [ ] Stage 120 - INP / interactions
+- [ ] Stage 130 - JS runtime after load
+- [ ] Stage 140 - navigation and bfcache
