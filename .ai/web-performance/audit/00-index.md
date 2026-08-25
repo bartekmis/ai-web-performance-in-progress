@@ -40,7 +40,8 @@ single stage - each stage in audit/ is self-contained and can be run on its own.
 - 120 - INP / interactions         -> .ai/web-performance/audit/120-inp-interactions.md
 - 130 - JS runtime after load      -> .ai/web-performance/audit/130-js-runtime.md
 - 140 - navigation and bfcache     -> .ai/web-performance/audit/140-navigation-bfcache.md
-- (more stages added per workshop: CLS...)
+- 150 - layout stability (CLS)     -> .ai/web-performance/audit/150-layout-stability.md
+- (more stages added per workshop)
 
 ## What each stage produces (the shape changes as you go up the stack)
 - 10-40 read a VALUE: the answer exists and can be measured directly.

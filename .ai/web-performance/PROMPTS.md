@@ -1052,6 +1052,78 @@ Write results to site-profile.md > ## Navigation and findings.md, tick Stage 140
 and end with the STOP line from the stage file.
 ```
 
+## 3k. Stage 150 standalone: layout stability (CLS)
+Paste after workshop 17 (25.08). Needs field data for the origin (CrUX or RUM), WebPageTest and a
+browser. Half of this stage is a pass no page-load test can run, so budget a few minutes of
+actually using the page with an observer attached.
+```
+Run .ai/web-performance/audit/150-layout-stability.md for MY project.
+
+Inputs: MY origin and page types from site-profile.md, what Stage 60 found in ## Render start,
+Stage 90 in ## Media, Stage 100 in ## Fonts, Stage 110 in ## Consent / CMP, Stage 130 in
+## JS runtime, my field data (CrUX or RUM), WebPageTest and a browser (chrome-devtools MCP is
+enough). Show me each step before moving on.
+
+READ THIS FIRST.
+A LAB SCORE MEASURES A WINDOW; THE FIELD MEASURES THE WHOLE VISIT. A lab zero only says nothing
+moved before the tool stopped watching. Size this from the field first, split by device and page
+type, and where lab and field disagree treat the field as the measurement and the lab as the
+reproduction.
+Second, THE COUNTED SET AND THE HARMFUL SET ARE NOT THE SAME. A confirmation message I scroll the
+user to on purpose scores as a shift and is good UX. A reflow within 500 ms of a click is excluded
+from the metric and still happened under the user's finger. Report both verdicts and let them
+disagree.
+Third, MOST SHIFTS HERE ARE THE PRICE OF AN EARLIER FIX - async CSS, lazy media, a swapped font, a
+late consent banner, layout decided in JavaScript. Route each finding back to the stage that owns
+it instead of treating it as a new topic.
+Fourth, A RESERVATION WRITTEN IN JAVASCRIPT IS NOT A RESERVATION. It arrives exactly as late as
+the element it was supposed to hold.
+
+1. FIELD SIZING. CLS at p75 for my origin, split by device and per page type where the data
+   allows, next to the lab number for the same page. Name the source. No field data? Say so, fall
+   back to RUM, mark it UNCONFIRMED IN THE FIELD.
+
+2. LOAD-PHASE INVENTORY. WebPageTest event details for the CLS metric (a screenshot per shift with
+   the moved regions boxed), then a trace through the browser on ONE stated emulation (mobile,
+   Fast 4G, CPU 4x). Give me a SELECTOR per shift, not a region, plus its score and whether it is
+   above the fold. Compare the screenshots either side of each shift: an element that is unstyled
+   in the first has a CSS arrival problem, an element that is absent has an insertion problem.
+
+3. THE USE-PHASE PASS - do not skip this, it is why the stage exists. Attach a PerformanceObserver
+   for layout-shift, logging value, hadRecentInput and the sources array, then USE the page for at
+   least 15 seconds after it looks ready: wait without touching anything, scroll slowly to the
+   bottom, trigger the real interactions, and navigate to another page type and back. Report
+   shifts during LOAD and shifts during USE as two separate populations.
+
+4. ATTRIBUTION, in this order. Is the sizing present in the HTML the server sent - checked in
+   view-source, not in the DOM inspector? Which earlier technique caused it? Whose code is it
+   (my template, theme, plugin or page builder, third-party tag)? Does it recur across page
+   types? On WordPress search the plugins and the builder's saved post meta too. Unattributed
+   shifts are reported as "source not identified", never guessed.
+
+5. RESERVATION PER SHIFT, in CSS wherever the source allows: dimensions or aspect-ratio on media,
+   a min-height per breakpoint on ad slots sized to what is actually served, the box on the
+   wrapper rather than on the widget, and - the one most often missed - the initial state of a
+   JS-driven component expressed in CSS so the first render is already correct. Fonts go back to
+   Stage 100. Nothing gets injected above the user's current position unless the same change
+   scrolls them there on purpose. Animations on transform and opacity only.
+
+6. VERDICT, then STOP and show me: field sizing, both inventories with owners, the metric verdict
+   against the UX verdict, the reservations ordered by what users actually meet, and what you
+   routed back to another stage. NO ACTION is a legitimate outcome if the field is clean and
+   nothing moves under the user's hands.
+
+7. EXPERIMENT, only on a FIX NOW. Prove the reservation with Local Overrides on the real page
+   before any deploy - override the document from the Network panel and paste the CSS inline.
+   Re-measure on the same emulation, 5 runs minimum, compare medians and state the spread; a
+   difference smaller than the spread is INCONCLUSIVE. Re-run the use-phase pass afterwards, not
+   only the load trace, and report honestly how much of the shift is left. Set a date to re-read
+   the field - until then the result is SUPPORTED IN LAB.
+
+Write results to site-profile.md > ## Layout stability and findings.md, tick Stage 150 in
+## Progress, and end with the STOP line from the stage file.
+```
+
 ## 4. Extend: new stage (builder prompt)
 ```
 We're creating a new audit stage as a SEPARATE file in .ai/web-performance/audit/.

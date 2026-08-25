@@ -350,6 +350,47 @@ Filled by Stage 140 (audit/140-navigation-bfcache.md). Leave <TODO> until run.
 - Consent and analytics verified for prerendered pages: <TODO>
 - Field confirmation due: <TODO date> - result: <TODO>
 
+## Layout stability
+Filled by Stage 150 (audit/150-layout-stability.md). Leave <TODO> until run.
+
+### Field sizing
+- Source: <TODO CrUX via which tool / RUM / UNCONFIRMED IN THE FIELD - no field data>
+- CLS p75 mobile: <TODO> - desktop: <TODO>
+- Per page type: <TODO>
+- Lab CLS on the same page: <TODO> - gap against the field: <TODO>
+
+### Shifts during load
+- Per shift: <TODO element (selector) | score | above/below the fold | timestamp>
+- Unstyled-then-styled or absent-then-inserted?: <TODO per shift>
+- Emulation used: <TODO device, network, CPU>
+
+### Shifts during use (the pass the lab cannot run)
+- Waiting without touching anything: <TODO what moved, when>
+- On scroll: <TODO>
+- On interaction (hadRecentInput true): <TODO what moved, and whether it lands under the user>
+- On page transition: <TODO>
+
+### Attribution
+- Sizing present in the HTML the server sent?: <TODO per shift, checked in view-source>
+- Technique that caused it: <TODO async CSS (60) / lazy media (90) / font swap (100) / consent
+  (110) / layout decided in JS (130) / other>
+- Owner: <TODO my template / theme / plugin or page builder / third-party tag / not identified>
+- Recurs across page types?: <TODO>
+
+### Verdicts
+- Metric verdict: <TODO>
+- UX verdict (shifts that score badly but serve the user, and shifts that score clean but
+  disorient): <TODO>
+- Automated clients affected (AI agents, e2e tests, scrapers)?: <TODO>
+
+### Reservations decided
+- Per shift: <TODO fix | file | stage that owns it>
+- Routed back to another stage: <TODO which shifts, which stage>
+- Local Overrides test result: <TODO IMPROVED / REGRESSION / INCONCLUSIVE> - medians and spread:
+  <TODO>
+- Use-phase pass re-run after the fix?: <TODO result>
+- Field confirmation due: <TODO date> - result: <TODO>
+
 ## Progress
 - [ ] Stage 10 - profile and baseline
 - [ ] Stage 20 - network: DNS / TLS / HTTP
@@ -365,3 +406,4 @@ Filled by Stage 140 (audit/140-navigation-bfcache.md). Leave <TODO> until run.
 - [ ] Stage 120 - INP / interactions
 - [ ] Stage 130 - JS runtime after load
 - [ ] Stage 140 - navigation and bfcache
+- [ ] Stage 150 - layout stability (CLS)

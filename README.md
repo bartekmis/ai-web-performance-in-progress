@@ -89,9 +89,22 @@ you see in the workshop, compare it against this one and pull in the newer stage
   BUDGET rather than a switch: framework link prefetching and Speculation Rules move origin work
   earlier without removing it, and a default that speculates every visible link turns one visit
   into dozens of requests.
+- `audit/150-layout-stability.md` - stage 15: layout stability, and the first stage where the
+  measuring INSTRUMENT is the trap. Every lab tool watches a window and then stops; the field
+  metric covers the whole visit - so a lab zero only means nothing moved before the tool looked
+  away. Half the stage is therefore a pass no page-load test can run: wait, scroll, interact and
+  navigate with a `layout-shift` observer attached, and report shifts DURING LOAD and DURING USE
+  as two populations. It ends in TWO verdicts that are allowed to disagree, because the counted
+  set and the harmful set are not the same - a deliberate scroll to a confirmation message scores
+  as a shift and is good UX, while a reflow within 500 ms of a click is excluded by the metric and
+  still happened under the user's finger. It is also the stage that audits THE AUDIT: most shifts
+  are the price of an earlier win (async CSS, lazy media, a swapped font, a late banner, layout
+  decided in JS), so findings are routed back to the stage that bought the speed. The fix is a
+  reservation - and **a reservation written in JavaScript arrives exactly as late as the element
+  it was meant to hold**.
 - `wpt/mobile`, `wpt/desktop` - drop your WebPageTest JSON files here
 
-More stages (CLS...) are added as we go, one per workshop.
+More stages are added as we go, one per workshop.
 
 ## How to use it
 
