@@ -41,6 +41,7 @@ single stage - each stage in audit/ is self-contained and can be run on its own.
 - 130 - JS runtime after load      -> .ai/web-performance/audit/130-js-runtime.md
 - 140 - navigation and bfcache     -> .ai/web-performance/audit/140-navigation-bfcache.md
 - 150 - layout stability (CLS)     -> .ai/web-performance/audit/150-layout-stability.md
+- 160 - rendering and animations   -> .ai/web-performance/audit/160-rendering-and-animations.md
 - (more stages added per workshop)
 
 ## What each stage produces (the shape changes as you go up the stack)
@@ -114,6 +115,18 @@ single stage - each stage in audit/ is self-contained and can be run on its own.
   visible link turns one visit into dozens of requests. The stage also owns a reporting failure
   that looks like a performance win: a restored page fires no page view, so fixing bfcache
   without a `pageshow` path shows up as a drop in traffic.
+
+- 160 produces AN ENTRY POINT PER EFFECT AND A CHEAPER EQUIVALENT. It is the stage with no
+  metric of its own: nothing in Core Web Vitals scores a dropped frame during scroll, so the
+  threshold is the frame budget itself (~16.7 ms at 60 Hz) and a page with green vitals can
+  still fail it. The diagnosis is positional - the cost of a visual change is decided by where
+  it enters the rendering pipeline (style, layout, paint, composite), and the same visual
+  effect can usually be expressed from a later, cheaper phase: transform for geometry, an
+  opacity overlay for a repaint, a fixed layer for a repaint-on-scroll background. The two
+  traps are its own tools: forced layer promotion (will-change everywhere) costs the memory it
+  was supposed to save, and requestAnimationFrame fixes when work runs, not what it costs. The
+  stage may also legitimately end in a KEPT COST - an effect that is measured, small, and worth
+  it visually - because its job is to move effects to a later phase, not to flatten the design.
 
 ## How to resume
 Check the "## Progress" section in .ai/web-performance/site-profile.md and run the

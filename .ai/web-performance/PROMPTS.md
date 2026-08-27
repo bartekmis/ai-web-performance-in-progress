@@ -1124,6 +1124,98 @@ Write results to site-profile.md > ## Layout stability and findings.md, tick Sta
 ## Progress, and end with the STOP line from the stage file.
 ```
 
+## 3l. Stage 160 standalone: rendering and animations (smoothness)
+Paste after workshop 18 (27.08). Needs a browser (chrome-devtools MCP is enough) and, where it
+exists, RUM with Long Animation Frames. No Core Web Vital scores this stage - the frame budget
+does - so most of it is a lab pass on the real page.
+```
+Run .ai/web-performance/audit/160-rendering-and-animations.md for MY project.
+
+Inputs: MY origin and page types from site-profile.md, what Stage 70 found in ## DOM size,
+Stage 120 in ## INP / interactions, Stage 130 in ## JS runtime, Stage 150 in ## Layout
+stability, my RUM where it collects Long Animation Frames, and a browser (chrome-devtools MCP
+is enough). Show me each step before moving on.
+
+READ THIS FIRST.
+THERE IS NO METRIC FOR THIS STAGE. Nothing in Core Web Vitals scores a dropped frame during
+scroll or a stuttering transition; the threshold is the frame budget (~16.7 ms at 60 Hz), and a
+page with green vitals can still fail it. Scroll - the one interaction almost every visit
+performs - is not scored by INP at all.
+Second, THE COST OF AN EFFECT IS DECIDED BY WHERE IT ENTERS THE PIPELINE: style -> layout ->
+paint -> composite. Geometry properties (width, height, top, left, margin, padding) re-run
+layout on the element AND its neighbours; painted properties (background-color, box-shadow,
+border-radius, filters) cost by painted area; transform and opacity enter at composite and are,
+in practice, the only properties that animate for free. The job is to find effects entering
+earlier than they need to and express the same visual result from a later phase.
+Third, MEASURE BEFORE YOU REMOVE. A hover on a button is almost never a problem; the same
+transition on a full-viewport section on a 3000-pixel screen can be. Every verdict needs a trace
+or a visual proof, not an aesthetic objection - and a KEPT COST with a number is a legitimate
+outcome.
+Fourth, THE TOOLS OF THIS STAGE ARE ALSO ITS TRAPS. will-change declares a FUTURE change - set
+it before the change (on the parent at rest, never inside the :hover that already animates),
+remove it in JS when the change is done, and never apply it broadly: forced promotion costs
+memory the browser was managing fine on its own. requestAnimationFrame fixes WHEN work runs,
+not what it costs - and re-armed inside a scroll handler it runs in a loop.
+
+1. SIZING. Read INP p75 and its subparts from Stage 120 (a long presentation delay is this
+   stage's ticket). If my RUM collects Long Animation Frames, pull the worst frames with their
+   script attribution per page type - that is the one field signal that names the function.
+   State plainly what the field cannot see (scroll, hover, page transitions); for those the lab
+   pass IS the measurement. No RUM? Mark the stage UNCONFIRMED IN THE FIELD and continue.
+
+2. THE VISUAL PASS - four switches in DevTools > Rendering, mobile viewport, five minutes.
+   Paint Flashing while scrolling the full page and using the real interactions (a region that
+   flashes on every scroll frame - the classic is background-attachment: fixed - is a finding
+   on its own). Layer Borders for the layer picture: animated elements WITHOUT their own layer,
+   and promotions nobody justified. Frame Rendering Stats for where the counter drops.
+   Scrolling Performance Issues for the selectors the browser itself annotates. Give me the
+   inventory: effect, element, page type, what the switches showed.
+
+3. THE TRACE. Performance panel on ONE stated emulation (mobile, CPU 4x), recording load PLUS
+   real use: hovers, the menu, scroll, one page transition. Correlate every dropped frame with
+   its event-log phase distribution - Layout-dominated frames point at geometry or thrashing,
+   Paint-dominated frames at painted area. Note the forced-reflow warning and the function it
+   names. Then attach the LoAF observer with script attribution (the WebPerf Snippets
+   collection has a ready one) and interact again - it names the script, function and character
+   position that the Long Tasks view alone will not.
+
+4. ATTRIBUTION, per effect, in this order. Which property actually animates - from the CSS or
+   the code, not the visual impression (the compositor-safe list in the web.dev Animations
+   Guide settles doubts)? How big is the painted area? Is JavaScript in the loop - a handler
+   reading geometry (offsetTop, getBoundingClientRect, scrollTop) and writing styles is layout
+   thrashing, a different fix from a property swap? Whose code is it (mine, theme, a builder
+   option ticked in WordPress, a third-party widget)? And does the effect run when nobody sees
+   it - below the fold, in a closed panel, from page load?
+
+5. THE CHEAPER EQUIVALENT, one line per effect: translate instead of top/left, scale instead
+   of width/height, opacity instead of geometry; the overlay trick (a pseudo-element carrying
+   the hover state, animated on opacity) where the painted area justifies it; a position: fixed
+   layer instead of background-attachment: fixed; reads batched before writes with the writes
+   in requestAnimationFrame (and cancelAnimationFrame when done); IntersectionObserver instead
+   of scroll-position polling; CSS scroll-driven animations and the View Transitions API as the
+   native, progressive-enhancement paths; will-change only where measured, with its lifecycle
+   correct; offscreen animations paused via a playing-state class or content-visibility (which
+   skips layout and paint, NOT the JS - Stage 130's caveat); prefers-reduced-motion respected.
+   Route back what belongs elsewhere: a thrashing handler may be Stage 130's chunk, a
+   layout-shifting transition is also Stage 150's finding.
+
+6. VERDICT, then STOP and show me: the sizing with sources, the inventory with entry points and
+   owners, the offenders worst-first with their proof, the thrashing sites, the layer picture,
+   the swaps proposed, the costs kept deliberately with their numbers, and what you routed
+   back. NO ACTION is a legitimate outcome if everything enters at composite and the frame
+   counter holds.
+
+7. EXPERIMENT, only on a FIX NOW. Local Overrides on the production page, no deploy. Re-record
+   the SAME scenario on the SAME emulation, 5 runs minimum, and compare the evidence that made
+   the finding: dropped-frame count, the Layout/Paint share in the event log, Paint Flashing on
+   the region - medians, spread, INCONCLUSIVE when the difference is smaller than the spread.
+   Re-run the visual pass afterwards, not only the trace. LoAF findings from RUM get a date to
+   re-read the field; until then the result is SUPPORTED IN LAB.
+
+Write results to site-profile.md > ## Rendering and animations and findings.md, tick Stage 160
+in ## Progress, and end with the STOP line from the stage file.
+```
+
 ## 4. Extend: new stage (builder prompt)
 ```
 We're creating a new audit stage as a SEPARATE file in .ai/web-performance/audit/.

@@ -102,6 +102,17 @@ you see in the workshop, compare it against this one and pull in the newer stage
   decided in JS), so findings are routed back to the stage that bought the speed. The fix is a
   reservation - and **a reservation written in JavaScript arrives exactly as late as the element
   it was meant to hold**.
+- `audit/160-rendering-and-animations.md` - stage 16: rendering and animations, and the first
+  stage with NO METRIC of its own - nothing in Core Web Vitals scores a dropped frame during
+  scroll, so the threshold is the frame budget itself (~16.7 ms at 60 Hz) and a page with green
+  vitals can still fail it. The diagnosis is positional: the cost of a visual change is decided
+  by WHERE it enters the rendering pipeline (style, layout, paint, composite), and the job is to
+  express the same visual result from a later, cheaper phase - `transform` for geometry, an
+  opacity overlay for a repaint, a fixed layer for a repaint-on-scroll background. Its own tools
+  are its traps: **`will-change` declares a future change** (set late or applied broadly it only
+  costs memory), and `requestAnimationFrame` fixes when work runs, not what it costs. A KEPT COST
+  with a number is a legitimate outcome - the stage moves effects to a later phase, it does not
+  flatten the design.
 - `wpt/mobile`, `wpt/desktop` - drop your WebPageTest JSON files here
 
 More stages are added as we go, one per workshop.

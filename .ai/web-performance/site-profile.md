@@ -391,6 +391,46 @@ Filled by Stage 150 (audit/150-layout-stability.md). Leave <TODO> until run.
 - Use-phase pass re-run after the fix?: <TODO result>
 - Field confirmation due: <TODO date> - result: <TODO>
 
+## Rendering and animations
+Filled by Stage 160 (audit/160-rendering-and-animations.md). Leave <TODO> until run.
+
+### Sizing
+- Field signals available: <TODO INP presentation delay (Stage 120) / LoAF in RUM with script
+  attribution / none - lab only, UNCONFIRMED IN THE FIELD>
+- Worst long animation frames (field): <TODO script | function | page type>
+- Lab-only areas (scroll, hover, page transitions): <TODO what the visual pass and trace showed>
+- Emulation used: <TODO device, CPU throttle>
+
+### Effect inventory
+- Per effect: <TODO effect | element (selector) | page type | animated property | pipeline
+  entry point (layout / paint / composite) | painted area (small / large / full viewport)>
+- Effects running while offscreen or hidden: <TODO>
+- Owner per effect: <TODO my CSS or component / theme / plugin or builder option /
+  third-party widget / not identified>
+
+### Frames and thrashing
+- Dropped frames correlated with: <TODO effect | phase distribution (Style / Layout / Paint /
+  Composite share)>
+- Forced reflow sites (read/write interleaving): <TODO function | file | trigger (scroll /
+  input / timer)>
+- Scrolling Performance Issues annotations: <TODO selectors named by DevTools>
+
+### Layers
+- Animated elements without their own layer: <TODO>
+- Promotions nobody justified (will-change wildcards, global transform hacks): <TODO>
+- will-change lifecycle correct (set before change, removed after)?: <TODO per site>
+
+### Decisions
+- Cheaper equivalent per effect: <TODO swap | file | stage that owns it if not 160>
+- Costs kept deliberately (measured, accepted): <TODO effect | number | why>
+- prefers-reduced-motion respected?: <TODO>
+- Offscreen animations paused (IntersectionObserver / playing-state / content-visibility)?: <TODO>
+- Routed back to another stage: <TODO which finding, which stage>
+- Local Overrides test result: <TODO IMPROVED / REGRESSION / INCONCLUSIVE> - medians and spread:
+  <TODO>
+- Visual pass re-run after the fix?: <TODO result>
+- Field confirmation due (LoAF findings only): <TODO date> - result: <TODO>
+
 ## Progress
 - [ ] Stage 10 - profile and baseline
 - [ ] Stage 20 - network: DNS / TLS / HTTP
@@ -407,3 +447,4 @@ Filled by Stage 150 (audit/150-layout-stability.md). Leave <TODO> until run.
 - [ ] Stage 130 - JS runtime after load
 - [ ] Stage 140 - navigation and bfcache
 - [ ] Stage 150 - layout stability (CLS)
+- [ ] Stage 160 - rendering and animations (smoothness)
